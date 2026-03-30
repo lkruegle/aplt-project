@@ -10,7 +10,7 @@ data Type = Num | Fun Type Type
 
 type Name = String
 
-data Value = VNat Nat | VLam Type Name Exp
+data Value = VNat Nat | VClo Env Type Name Exp
   deriving (Show)
 
 data Exp
@@ -37,12 +37,12 @@ eval env = \case
     Just value -> value -- guaranteed by type checker
   R Z b r -> eval env b
   R (S n) b r -> eval env (A (A r n) (R n b r))
-  L t v e -> VLam t v e
+  L t v e -> VClo env t v e
   A f a ->
-    let (VLam _ x e) = eval env f
+    let (VClo clo _ x e) = eval env f
      in let v = eval env a
-         in let env' = M.insert x v env
-             in eval env' e
+         in let clo' = M.insert x v clo
+             in eval clo' e
 
 infer' :: Exp -> Maybe Type
 infer' e = infer M.empty e
