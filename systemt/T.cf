@@ -1,0 +1,15 @@
+entrypoints Exp;
+
+TNat. Typ1 ::= "Nat" ;
+TFun. Typ  ::= Typ "->" Typ1;
+coercions Typ 1;
+
+EVar.  Exp5 ::= Ident ;
+ENat.  Exp5 ::= Integer ;
+ENatZ. Exp4 ::= "z";
+ENatS. Exp4 ::= "s" "(" Exp ")";
+ERec.  Exp3 ::= "rec" Exp "[" "z" "->" Exp "|" "s" "(" Exp ")" "with" Ident "->" Exp "]" ;
+ELam.  Exp2 ::= "\\" Ident ":" Typ "->" Exp;
+EApl.  Exp1 ::= Exp1 Exp2;
+ELet.  Exp  ::= "let" Ident "=" Exp "in" Exp;
+coercions Exp 5;
