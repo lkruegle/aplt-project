@@ -24,6 +24,7 @@ data γ ⊢ τ where
   RecN :: γ ⊢ τ -> (Nat:τ:γ) ⊢ τ -> γ ⊢ Nat -> γ ⊢ τ
   Lam :: (τ₁:γ) ⊢ τ₂ -> γ ⊢ TFun τ₁ τ₂
   App :: γ ⊢ TFun τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
+  Let :: γ ⊢ τ₂ -> (τ₂:γ) ⊢ τ₂ -> γ ⊢ τ₂
 
 type Env γ = forall τ. τ ∈ γ -> Val τ
 
@@ -48,3 +49,4 @@ eval env = \case
   Lam e -> VFun (\v -> eval (cons env v) e)
   App f x -> case eval env f of
     VFun f' -> f' (eval env x)
+  Let e₁ e₂ -> eval (cons env (eval env e₁)) e₂
