@@ -1,7 +1,5 @@
 {-# LANGUAGE LambdaCase, GADTs, DataKinds #-}
 
-import qualified Data.Map as M
-
 data ℕ = Zero | Succ ℕ
   deriving (Eq, Show)
 
