@@ -1,0 +1,66 @@
+cabal-version: 2.4
+
+name:                 aplt
+version:              0.1
+license:              NONE
+                      -- All rights reserved.
+
+extra-source-files:
+  src/Grammar.cf
+
+build-type: Custom
+custom-setup
+  setup-depends:
+    -- Lower bounds set to versions shipped with GHC 8.6.5
+    , Cabal   >= 2.4.0.1   && < 4
+    , base    >= 4.12.0.0  && < 5
+    , process >= 1.6.5.0   && < 1.7
+    -- Adding BNFC here does not help because that only provides the BNFC _library_,
+    -- not the _executable that_ we call from 'Setup.hs'.
+    -- , BNFC    >= 2.8.4 && < 2.10
+
+executable aplt
+  main-is:            main.hs
+  hs-source-dirs:     src
+  other-modules:
+    Grammar.Abs
+    Grammar.Lex
+    Grammar.Par
+    Grammar.Print
+  autogen-modules:
+    Grammar.Abs
+    Grammar.Lex
+    Grammar.Par
+    Grammar.Print
+
+  default-language:   Haskell2010
+  default-extensions:
+    BlockArguments
+    FlexibleContexts
+    FlexibleInstances
+    LambdaCase
+    PatternSynonyms
+    ScopedTypeVariables
+    TupleSections
+
+  build-depends:
+   -- Lower bounds set to versions shipped with GHC 8.6.5
+    , base       >= 4.12.0.0 && < 5
+    , array      >= 0.5.3.0  && < 0.6
+    , containers >= 0.6.0.1  && < 0.8
+    , mtl        >= 2.2.2    && < 2.4
+
+  ghc-options:
+    -Wall
+    -Wcompat
+
+  build-tool-depends:
+   -- The 'bnfc' executable is called from 'Setup.hs' only,
+   -- but 'build-tool-depends' is not supported in the 'custom-setup' stanza,
+   -- so we place it here.
+   -- BNFC 2.8.4 dropped the 'Err' custom type in favor of the standard 'Either'.
+    , BNFC:bnfc   >= 2.8.4  && < 2.10
+   -- Not sure about the lower bounds, so we pick alex and happy versions
+   -- that come in the last Stackage LTS (14.27) for GHC 8.6.5.
+    , alex:alex   >= 3.2.5   && < 3.6
+    , happy:happy >= 1.19.12 && < 2.2
