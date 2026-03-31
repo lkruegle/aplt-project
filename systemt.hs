@@ -76,3 +76,8 @@ check :: Cxt -> Type -> Exp -> Bool
 check cxt t e = case infer cxt e of
   Just t' -> t' == t
   Nothing -> False
+
+run :: Exp -> Maybe Value
+run e = do
+  infer' e
+  return $ eval' e
