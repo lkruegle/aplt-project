@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 import qualified Data.Map as M
 
 data Nat = Zero | Succ Nat

@@ -38,5 +38,5 @@ main = do
 #endif
             autogenPackageModulesDir localBuildInfo
         , "-d"
-        , "src/Grammar.cf"
+        , "src/kx.cf"
         ]
