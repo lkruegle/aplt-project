@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase, GADTs, DataKinds #-}
 
+
 data ℕ = Zero | Succ ℕ
   deriving (Eq, Show)
 

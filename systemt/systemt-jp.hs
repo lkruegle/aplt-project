@@ -12,6 +12,14 @@ data Val
    = NatVal Nat
    | FunVal (Val -> Val)
 
+data Typ = Nat | Fun Typ Typ
+type Ctx = [Typ]
+data tao In gamma where
+  Here :: tao In (tao : gamma)
+  There :: tao In gamma -> tao In (tao' : gamma)
+
+type Env = forall t. t In gamma -> Val
+
 type Env = [(String, Val)]
 
 eval :: Env -> Exp -> Val

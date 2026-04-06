@@ -1,12 +1,12 @@
 cabal-version: 2.4
 
-name:                 aplt
+name:                 line
 version:              0.1
 license:              NONE
                       -- All rights reserved.
 
 extra-source-files:
-  src/Grammar.cf
+  src/kx.cf
 
 build-type: Custom
 custom-setup
@@ -19,19 +19,19 @@ custom-setup
     -- not the _executable that_ we call from 'Setup.hs'.
     -- , BNFC    >= 2.8.4 && < 2.10
 
-executable aplt
+executable line
   main-is:            main.hs
   hs-source-dirs:     src
   other-modules:
-    Grammar.Abs
-    Grammar.Lex
-    Grammar.Par
-    Grammar.Print
+    Kx.Abs
+    Kx.Lex
+    Kx.Par
+    Kx.Print
   autogen-modules:
-    Grammar.Abs
-    Grammar.Lex
-    Grammar.Par
-    Grammar.Print
+    Kx.Abs
+    Kx.Lex
+    Kx.Par
+    Kx.Print
 
   default-language:   Haskell2010
   default-extensions:
