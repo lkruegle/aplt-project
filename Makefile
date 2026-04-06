@@ -1,17 +1,15 @@
-# Makefile for PLT lab 2 in Haskell
-
 ## Variables
 ###########################################################################
 
 # Files of solution.  Add more files as needed.
-files=src/kx.cf line.cabal src/Types.hs src/Main.hs
+files=src/kx.cf line.cabal src/Types.hs src/Main.hs src/Evaluator.hs src/TypeChecker.hs
 
 ## Building
 ###########################################################################
 
 .PHONY: line
 line: $(files)
-	stack install --local-bin-path=.
+	stack install --local-bin-path=build/
 
 # Running a test
 ###########################################################################
@@ -25,6 +23,7 @@ line: $(files)
 ###########################################################################
 
 .PHONY: clean
-	stack clean
+clean:
+	stack clean && rm -rf build
 
 # EOF

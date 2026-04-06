@@ -1,10 +1,10 @@
-import Control.Exception
-
 import System.Environment (getArgs)
 import System.Exit        (exitFailure)
-import System.IO.Error    (isUserError, ioeGetErrorString)
 
 import Kx.Par            (pExp, myLexer)
+
+import TypeChecker
+import Evaluator
 
 -- | Parse, type check, and interpret a program given by the @String@.
 
@@ -17,20 +17,11 @@ check s = do
       exitFailure
     Right tree -> do
       putStrLn $ show tree
-      -- case typecheck tree of
-      --   Left err -> do
-      --     putStrLn "TYPE ERROR"
-      --     putStrLn err
-      --     exitFailure
-      --   Right tree' -> catchUserError (interpret tree') $ \ err -> do
-      --     putStrLn "INTERPRETER ERROR"
-      --     putStrLn err
-      --     exitFailure
-
-  where
-  catchUserError :: IO a -> (String -> IO a) -> IO a
-  catchUserError = catchJust $ \ exc ->
-    if isUserError exc then Just (ioeGetErrorString exc) else Nothing
+      let tree' = typecheck tree
+      putStrLn "Type checking passed"
+      let val = eval' tree'
+      putStrLn $ show val
+      return ()
 
 -- | Main: read file passed by only command line argument and call 'check'.
 

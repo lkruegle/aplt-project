@@ -1,16 +1,6 @@
-/CMM/
 /dist-newstyle/
 /.stack-work/
 *.hi
 *.o
 stack.yaml.lock
-/lab2
-
-# Ignore all BNFC generated files
-systemt/Makefile
-systemt/Makefile.bak
-
-systemt/Logic/*
-!systemt/Logic/Abs.hs
-!systemt/Logic/Lex.hs
-!systemt/Logic/Par.hs
+build/*

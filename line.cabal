@@ -7,6 +7,7 @@ license:              NONE
 
 extra-source-files:
   src/kx.cf
+  Makefile
 
 build-type: Custom
 custom-setup
@@ -23,6 +24,9 @@ executable line
   main-is:            main.hs
   hs-source-dirs:     src
   other-modules:
+    Evaluator
+    TypeChecker
+    Types
     Kx.Abs
     Kx.Lex
     Kx.Par
@@ -42,6 +46,12 @@ executable line
     PatternSynonyms
     ScopedTypeVariables
     TupleSections
+    GADTs
+    DataKinds
+    TypeOperators
+    EmptyCase
+    KindSignatures
+    RankNTypes
 
   build-depends:
    -- Lower bounds set to versions shipped with GHC 8.6.5
