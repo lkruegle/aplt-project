@@ -9,7 +9,7 @@ files=src/kx.cf line.cabal src/Types.hs src/Main.hs src/Evaluator.hs src/TypeChe
 
 .PHONY: line
 line: $(files)
-	stack install --local-bin-path=build/
+	stack install --local-bin-path=.
 
 # Running a test
 ###########################################################################
@@ -24,6 +24,6 @@ line: $(files)
 
 .PHONY: clean
 clean:
-	stack clean && rm -rf build
+	stack clean && rm line
 
 # EOF
