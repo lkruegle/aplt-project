@@ -3,6 +3,7 @@ import System.Exit        (exitFailure)
 
 import Kx.Par            (pExp, myLexer)
 
+import Types
 import TypeChecker
 import Evaluator
 
@@ -17,11 +18,11 @@ check s = do
       exitFailure
     Right tree -> do
       putStrLn $ show tree
-      let tree' = typecheck tree
-      putStrLn "Type checking passed"
-      let val = eval' tree'
-      putStrLn $ show val
-      return ()
+      case typecheck tree of
+        Left err -> putStrLn err
+        Right (Inferred typ term) -> do
+          let val = eval' term
+          putStrLn $ show val
 
 -- | Main: read file passed by only command line argument and call 'check'.
 
