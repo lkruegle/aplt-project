@@ -24,7 +24,10 @@ infer ctx (EVar id@(Ident n)) = case lookupCtx id ctx of
 infer ctx (ERec e1 e2 e3 id e4) = undefined
 infer ctx (ELam id typ exp) = undefined
 infer ctx (EApl f a) = undefined
-infer ctx (ELet id exp exp) = undefined
+infer ctx (ELet id vexp iexp) = do
+  Inferred typ vterm <- infer ctx vexp
+  Inferred typ' iterm <- infer (ConsC id typ ctx) iexp
+  Right $ Inferred typ' $ Let vterm iterm
 
 check :: Ctx γ -> STyp τ -> Exp -> M (γ ⊢ τ)
 check ctx typ exp = case infer ctx exp of
