@@ -21,7 +21,11 @@ infer ctx (ENat i) = Right $ Inferred SNat (natTerm i)
 infer ctx (EVar id@(Ident n)) = case lookupCtx id ctx of
   Nothing -> Left $ "No variable bound with name " ++ n
   Just (Found typ idx) -> Right $ Inferred typ (Var idx)
-infer ctx (ERec e1 e2 e3 id e4) = undefined
+infer ctx (ERec nat base x y rec) = do
+  nTerm <- check ctx SNat nat
+  Inferred typ bTerm <- infer ctx base
+  rTerm <- check (ConsC x SNat (ConsC y typ ctx)) typ rec
+  Right $ Inferred typ (RecN bTerm rTerm nTerm)
 infer ctx (ELam id typA exp) = case toSTyp typA of
   SomeSTyp atyp -> do
     Inferred rtyp fterm <- infer (ConsC id atyp ctx) exp
