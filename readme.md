@@ -1,4 +1,15 @@
-# Implementation Idea Outline 
+# Build instructions
+
+This project uses stack to manage builds. The provided Makefile can be used to generate an executable in the root folder of the project called `line`.
+
+```sh
+# To build `line`
+make
+
+# To remove build artifacts
+make clean
+```
+# Implementation Idea Outline
 
 - SystemT (need frontend)
 
