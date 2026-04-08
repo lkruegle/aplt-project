@@ -1,16 +1,12 @@
 module Types where
 
-import Kx.Abs (Ident)
+import Kx.Abs (Ident, Typ(..))
 
 data ℕ = Zero | Succ ℕ
   deriving (Eq, Show)
 
--- the name Type is already taken for the type of types in Haskell
-data Typ = Nat | TFun Typ Typ
-  deriving (Eq, Show)
-
 data Val (τ :: Typ) where
-  VNat :: ℕ -> Val Nat
+  VNat :: ℕ -> Val TNat
   VFun :: (Val τ₁ -> Val τ₂) -> Val ('TFun τ₁ τ₂)
 
 instance Show (Val τ) where
@@ -23,9 +19,9 @@ data (τ :: Typ) ∈ (γ :: [Typ]) where
 
 data (γ :: [Typ]) ⊢ (τ :: Typ) where
   Var :: τ ∈ γ -> γ ⊢ τ
-  Z :: γ ⊢ 'Nat
-  S :: γ ⊢ 'Nat -> γ ⊢ 'Nat
-  RecN :: γ ⊢ τ -> ('Nat:τ:γ) ⊢ τ -> γ ⊢ 'Nat -> γ ⊢ τ
+  Z :: γ ⊢ 'TNat
+  S :: γ ⊢ 'TNat -> γ ⊢ 'TNat
+  RecN :: γ ⊢ τ -> ('TNat:τ:γ) ⊢ τ -> γ ⊢ 'TNat -> γ ⊢ τ
   Lam :: (τ₁:γ) ⊢ τ₂ -> γ ⊢ 'TFun τ₁ τ₂
   App :: γ ⊢ 'TFun τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
   Let :: γ ⊢ τ₁ -> (τ₁:γ) ⊢ τ₂ -> γ ⊢ τ₂
@@ -40,11 +36,11 @@ consEnv e x Here = x
 consEnv e x (There p) = e p
 
 data STyp (τ :: Typ) where
-  SNat :: STyp 'Nat
+  SNat :: STyp 'TNat
   SFun :: STyp τ₁ -> STyp τ₂ -> STyp ('TFun τ₁ τ₂)
 
 instance Show (STyp τ) where
-  show SNat = show Nat
+  show SNat = show TNat
   show (SFun a b) = "(" ++ show a ++ " -> " ++ show b ++ ")"
 
 data Ctx (γ :: [Typ]) where
