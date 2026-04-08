@@ -20,7 +20,7 @@ check s = do
       putStrLn $ show tree
       case typecheck tree of
         Left err -> putStrLn err
-        Right (Inferred typ term) -> do
+        Right (Inferred term) -> do
           let val = eval' term
           putStrLn $ show val
 

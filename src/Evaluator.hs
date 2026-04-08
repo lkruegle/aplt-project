@@ -13,7 +13,7 @@ eval env = \case
   Var x -> env x
   RecN z s Z -> eval env z
   RecN z s (S e) -> eval (consEnv (consEnv env (eval env (RecN z s e))) (eval env e)) s
-  Lam e -> VFun (\v -> eval (consEnv env v) e)
+  Lam _ e -> VFun (\v -> eval (consEnv env v) e)
   App f x -> case eval env f of
     VFun f' -> f' (eval env x)
   Let e₁ e₂ -> eval (consEnv env (eval env e₁)) e₂
