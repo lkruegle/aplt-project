@@ -39,6 +39,14 @@ data STyp (τ :: Typ) where
   SNat :: STyp 'TNat
   SFun :: STyp τ₁ -> STyp τ₂ -> STyp ('TFun τ₁ τ₂)
 
+data SomeSTyp where
+  SomeSTyp :: STyp τ -> SomeSTyp
+
+toSTyp :: Typ -> SomeSTyp
+toSTyp (TFun a r) = case (toSTyp a, toSTyp r) of
+  (SomeSTyp sa, SomeSTyp sr) -> SomeSTyp $ SFun sa sr
+toSTyp TNat = SomeSTyp SNat
+
 instance Show (STyp τ) where
   show SNat = show TNat
   show (SFun a b) = "(" ++ show a ++ " -> " ++ show b ++ ")"
