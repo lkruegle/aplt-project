@@ -2,7 +2,7 @@
 ###########################################################################
 
 # Files of solution.  Add more files as needed.
-files=src/kx.cf line.cabal src/Types.hs src/Main.hs src/Evaluator.hs src/TypeChecker.hs
+files=src/kx.cf line.cabal src/Types.hs src/main.hs src/Evaluator.hs src/TypeChecker.hs
 
 ## Building
 ###########################################################################

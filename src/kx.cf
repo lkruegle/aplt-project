@@ -1,15 +1,37 @@
 entrypoints Exp;
 
-TNat. Typ1 ::= "Nat" ;
-TFun. Typ  ::= Typ "->" Typ1;
+separator SumCaseTy "," ;
+separator ProdTagTy "," ;
+
+CaseTy. SumCaseTy ::= Ident "->" Typ ;
+TagTy. ProdTagTy ::= Ident ":" Typ ;
+
+TNat.  Typ1 ::= "Nat" ;
+TProd. Typ1 ::= "<" [ProdTagTy] ">";
+TSum.  Typ1 ::= "[" [SumCaseTy] "]";
+TFun.  Typ  ::= Typ "->" Typ1;
 coercions Typ 1;
 
-EVar.  Exp5 ::= Ident ;
-ENat.  Exp5 ::= Integer ;
-ENatZ. Exp4 ::= "z";
-ENatS. Exp4 ::= "s" "(" Exp ")";
-ERec.  Exp3 ::= "rec" Exp "[" "z" "->" Exp "|" "s" "(" Ident ")" "with" Ident "->" Exp "]" ;
-ELam.  Exp2 ::= "\\" Ident ":" Typ "->" Exp;
-EApl.  Exp1 ::= Exp1 Exp2;
-ELet.  Exp  ::= "let" Ident "=" Exp "in" Exp;
+separator SumCase "," ;
+separator ProdTag "," ;
+
+Case. SumCase ::= Ident Ident "->" Exp ;
+Tag. ProdTag ::= Ident ":" Exp ;
+
+EVar.   Exp5 ::= Ident ;
+ENat.   Exp5 ::= Integer ;
+ENatZ.  Exp4 ::= "z";
+ENatS.  Exp4 ::= "s" "(" Exp ")" ;
+
+EProd.  Exp4 ::= "<" [ProdTag] ">" ;
+EProj.  Exp4 ::= Exp4 "." Ident ; 
+
+ERec.   Exp3 ::= "rec" Exp "[" "z" "->" Exp "|" "s" "(" Ident ")" "with" Ident "->" Exp "]" ;
+
+EMatch. Exp3 ::= "match" Exp "[" [SumCase] "]" ;
+EInj.   Exp3 ::= "inj" Ident Exp4 ;
+
+ELam.   Exp2 ::= "\\" Ident ":" Typ "." Exp;
+EApl.   Exp1 ::= Exp1 Exp2;
+ELet.   Exp  ::= "let" Ident "=" Exp "in" Exp;
 coercions Exp 5;

@@ -46,6 +46,19 @@ infer ctx (ELet id vexp iexp) = do
   Inferred iterm <- infer (ConsC id typ ctx) iexp
   Right $ Inferred $ Let vterm iterm
 
+infer ctx (EProd []) = Right $ Inferred (Prod Unit)
+
+infer ctx (EProd (Tag ident exp:tags)) = do
+  Inferred term <- infer ctx exp
+  Inferred prod <- infer ctx (EProd tags)
+  case prod of
+    Prod ts -> Right $ Inferred $ Prod (Tupl term ts)
+    _       -> Left "Internal Typechecker error in inferring product"
+
+-- infer ctx (EProj pair field) = do
+--   Inferred term <- infer ctx pair
+  
+
 check :: Ctx γ -> STyp τ -> Exp -> M (γ ⊢ τ)
 check ctx typ exp = case infer ctx exp of
   Left err -> Left err

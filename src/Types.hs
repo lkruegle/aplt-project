@@ -1,6 +1,6 @@
 module Types where
 
-import Kx.Abs (Ident(..), Typ(..))
+import Kx.Abs (Ident(..), Typ(..), ProdTagTy(..), SumCaseTy(..))
 
 data ℕ = Zero | Succ ℕ
   deriving (Eq, Show)
@@ -10,25 +10,48 @@ natToInt Zero = 0
 natToInt (Succ n) = 1 + (natToInt n)
 
 data Val (τ :: Typ) where
-  VNat :: ℕ -> Val TNat
-  VFun :: (Val τ₁ -> Val τ₂) -> Val ('TFun τ₁ τ₂)
+  VNat  :: ℕ -> Val TNat
+  VFun  :: (Val τ₁ -> Val τ₂) -> Val ('TFun τ₁ τ₂)
+  VSum  :: Val τ -> CaseTy name τ ∈ ts -> Val (TSum ts)
+  VProd :: LProd Val ts -> Val (TProd ts)
+
+data LProd (vt :: τ -> *) (prod :: [ProdTagTy]) where
+  Unit :: LProd vt '[]
+  Tupl :: vt τ -> LProd vt ts -> LProd vt (TagTy name τ:ts)
+
+instance Show (LProd Val ts) where
+  show Unit = ""
+  show (Tupl vt Unit) = show vt
+  show (Tupl vt vts) = show vt ++  ", " ++ show vts
 
 instance Show (Val τ) where
   show (VNat n) = show $ natToInt n
+  show (VSum v _) = "inj " ++ show v
+  show (VProd v) = "<"  ++ show v ++ ">"
   show (VFun _) = "λ"
 
-data (τ :: Typ) ∈ (γ :: [Typ]) where
+data τ ∈ γ where
   Here :: τ ∈ (τ:γ)
   There :: τ ∈ γ -> τ ∈ (τ':γ)
 
-data (γ :: [Typ]) ⊢ (τ :: Typ) where
-  Var :: τ ∈ γ -> γ ⊢ τ
-  Z :: γ ⊢ 'TNat
-  S :: γ ⊢ 'TNat -> γ ⊢ 'TNat
+data γ ⊢ τ where
+  Var  :: τ ∈ γ -> γ ⊢ τ
+  Z    :: γ ⊢ 'TNat
+  S    :: γ ⊢ 'TNat -> γ ⊢ 'TNat
   RecN :: γ ⊢ τ -> ('TNat:τ:γ) ⊢ τ -> γ ⊢ 'TNat -> γ ⊢ τ
-  Lam :: STyp τ₁ -> (τ₁:γ) ⊢ τ₂ -> γ ⊢ 'TFun τ₁ τ₂
-  App :: γ ⊢ 'TFun τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
-  Let :: γ ⊢ τ₁ -> (τ₁:γ) ⊢ τ₂ -> γ ⊢ τ₂
+  Lam  :: STyp τ₁ -> (τ₁:γ) ⊢ τ₂ -> γ ⊢ 'TFun τ₁ τ₂
+  App  :: γ ⊢ 'TFun τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
+  Let  :: γ ⊢ τ₁ -> (τ₁:γ) ⊢ τ₂ -> γ ⊢ τ₂
+
+  Prod :: LProd ((⊢) γ) ts -> γ ⊢ TProd ts
+  Proj :: γ ⊢ TProd ts -> TagTy name τ ∈ ts -> γ ⊢ τ
+
+  Inj  :: γ ⊢ τ -> CaseTy name τ ∈ ts -> γ ⊢ TSum ts
+  Match :: γ ⊢ TSum cs -> LSum γ cs τ -> γ ⊢ τ
+
+data LSum γ (sum :: [SumCaseTy]) τ where
+  None   :: LSum γ '[] τ
+  Either :: (τ₁:γ) ⊢ τ₂ -> LSum γ cs τ₂ -> LSum γ (CaseTy name τ₁:cs) τ₂
 
 data Found (γ :: [Typ]) where
   Found :: STyp τ -> τ ∈ γ -> Found γ
@@ -45,6 +68,7 @@ consEnv e x (There p) = e p
 data STyp (τ :: Typ) where
   SNat :: STyp 'TNat
   SFun :: STyp τ₁ -> STyp τ₂ -> STyp ('TFun τ₁ τ₂)
+  -- todo add stuff
 
 data SomeSTyp where
   SomeSTyp :: STyp τ -> SomeSTyp
