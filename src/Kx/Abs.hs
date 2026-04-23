@@ -16,7 +16,7 @@ data Typ = TVar Ident | TArr Typ Typ | TAll Ident Typ
 data Exp
     = EVar Ident
     | EFLam Ident Typ Exp
-    | EFApl Exp Exp
+    | EFApp Exp Exp
     | ETLam Ident Exp
     | ETApp Exp Typ
   deriving (C.Eq, C.Ord, C.Show, C.Read)

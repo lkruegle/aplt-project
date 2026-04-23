@@ -43,27 +43,27 @@ Typ2 :: { Kx.Abs.Typ }
 Typ2 : Ident { Kx.Abs.TVar $1 }
 
 Typ1 :: { Kx.Abs.Typ }
-Typ1 : Typ1 '->' Typ2 { Kx.Abs.TArr $1 $3 }
+Typ1 : Typ2 '->' Typ1 { Kx.Abs.TArr $1 $3 }
 
 Typ :: { Kx.Abs.Typ }
-Typ : 'forall' Ident '.' Typ1 { Kx.Abs.TAll $2 $4 }
+Typ : 'forall' Ident '.' Typ { Kx.Abs.TAll $2 $4 }
 
 Exp :: { Kx.Abs.Exp }
 Exp
   : Exp1 { $1 }
-  | Exp '[' Typ ']' { Kx.Abs.ETApp $1 $3 }
+  | Exp1 '[' Typ ']' { Kx.Abs.ETApp $1 $3 }
   | Exp1 { $1 }
 
 Exp1 :: { Kx.Abs.Exp }
 Exp1
   : Exp2 { $1 }
-  | '\\' Ident '->' Exp { Kx.Abs.ETLam $2 $4 }
+  | '\\' Ident '->' Exp1 { Kx.Abs.ETLam $2 $4 }
   | Exp2 { $1 }
 
 Exp2 :: { Kx.Abs.Exp }
 Exp2
   : '(' Exp ')' { $2 }
-  | Exp2 '(' Exp3 ')' { Kx.Abs.EFApl $1 $3 }
+  | Exp2 '(' Exp ')' { Kx.Abs.EFApp $1 $3 }
   | Exp3 { $1 }
 
 Exp4 :: { Kx.Abs.Exp }
@@ -71,7 +71,7 @@ Exp4 : Ident { Kx.Abs.EVar $1 } | '(' Exp ')' { $2 }
 
 Exp3 :: { Kx.Abs.Exp }
 Exp3
-  : '\\' Ident ':' Typ '->' Exp { Kx.Abs.EFLam $2 $4 $6 }
+  : '\\' Ident ':' Typ '->' Exp3 { Kx.Abs.EFLam $2 $4 $6 }
   | Exp4 { $1 }
 
 {

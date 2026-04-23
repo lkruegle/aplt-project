@@ -20,8 +20,8 @@ check s = do
       putStrLn $ show tree
       case typecheck tree of
         Left err -> putStrLn err
-        Right (exp, _) -> do
-          let val = eval' exp
+        Right typed -> do
+          let val = eval' typed
           putStrLn $ show val
 
 -- | Main: read file passed by only command line argument and call 'check'.

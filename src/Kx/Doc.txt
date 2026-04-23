@@ -38,20 +38,20 @@ and **eps** (empty rule) belong to the BNF notation.
 All other symbols are terminals.
 
   | //Typ2// | -> | //Ident//
-  | //Typ1// | -> | //Typ1// ``->`` //Typ2//
-  | //Typ// | -> | ``forall`` //Ident// ``.`` //Typ1//
+  | //Typ1// | -> | //Typ2// ``->`` //Typ1//
+  | //Typ// | -> | ``forall`` //Ident// ``.`` //Typ//
   | //Exp// | -> | //Exp1//
-  |  |  **|**  | //Exp// ``[`` //Typ// ``]``
+  |  |  **|**  | //Exp1// ``[`` //Typ// ``]``
   |  |  **|**  | //Exp1//
   | //Exp1// | -> | //Exp2//
-  |  |  **|**  | ``\`` //Ident// ``->`` //Exp//
+  |  |  **|**  | ``\`` //Ident// ``->`` //Exp1//
   |  |  **|**  | //Exp2//
   | //Exp2// | -> | ``(`` //Exp// ``)``
-  |  |  **|**  | //Exp2// ``(`` //Exp3// ``)``
+  |  |  **|**  | //Exp2// ``(`` //Exp// ``)``
   |  |  **|**  | //Exp3//
   | //Exp4// | -> | //Ident//
   |  |  **|**  | ``(`` //Exp// ``)``
-  | //Exp3// | -> | ``\`` //Ident// ``:`` //Typ// ``->`` //Exp//
+  | //Exp3// | -> | ``\`` //Ident// ``:`` //Typ// ``->`` //Exp3//
   |  |  **|**  | //Exp4//
 
 

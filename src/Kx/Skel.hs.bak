@@ -28,7 +28,7 @@ transTyp x = case x of
 transExp :: Kx.Abs.Exp -> Result
 transExp x = case x of
   Kx.Abs.EVar ident -> failure x
-  Kx.Abs.EFLam ident typ exp -> failure x
-  Kx.Abs.EFApl exp1 exp2 -> failure x
-  Kx.Abs.ETLam typ exp -> failure x
+  Kx.Abs.ETLam ident exp -> failure x
   Kx.Abs.ETApp exp typ -> failure x
+  Kx.Abs.EFLam ident typ exp -> failure x
+  Kx.Abs.EFApp exp1 exp2 -> failure x

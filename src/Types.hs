@@ -1,34 +1,29 @@
 module Types where
 import qualified Data.Map as Map
-
+import qualified Kx.Abs as Abs
+import Kx.Abs(Typ, Typ(..), Ident)
+{-
 data Typ 
     = TVar String 
     | TArr Typ Typ 
     | TAll String Typ
     deriving (Eq, Show)
+-}
+data Typed a = Typed a Typ
 
 data Exp
-    = EVar String
-    | EFLam String Typ Exp
-    | EFApl Exp Exp
-    | ETLam String Exp
-    | ETApp Exp Typ
-    deriving (Show)
+    = EVar Ident
+    | EFLam Ident Typ (Typed Exp)
+    | EFApp (Typed Exp) (Typed Exp)
+    | ETLam Ident (Typed Exp)
+    | ETApp (Typed Exp) Typ
+
+
 
 data Val 
-    = VFLam String Typ Exp
-    | VTLam String Exp
-    deriving (Show)
+    = VFLam (Typed Exp -> Typed Val)
+    | VTLam (Typ -> Typed Val) 
 
-type Ctx = Map.Map String Typ
-
-type Env = Map.Map String Exp
-
---[tau/ t] tau'
--- substitute each free instance of t with tau in tau'
-subTypInTyp :: Ctx -> Typ -> String -> Typ -> Typ
-subTypInTyp ctx tau t (TVar t') 
-    | t == t' && Map.notMember t ctx = tau 
-    | otherwise = (TVar t') -- Not free
-subTypInTyp ctx tau t (TArr tau1' tau2') = TArr (subTypInTyp ctx tau t tau1') ( subTypInTyp ctx tau t tau2') 
-subTypInTyp ctx tau t (TAll t' tau')  = TAll t' (subTypInTyp (Map.insert t (TVar t) ctx) tau t tau')
+instance Show (Typed Val) where
+    show (Typed (VFLam _) t) = show t
+    show (Typed (VTLam _) t) = show t
