@@ -2,34 +2,44 @@ import System.Environment (getArgs)
 import System.Exit        (exitFailure)
 
 import Kx.Par            (pExp, myLexer)
+import Kx.Abs
 
-import Types
 import TypeChecker
 import Evaluator
 
 -- | Parse, type check, and interpret a program given by the @String@.
 
-check :: String -> IO ()
-check s = do
+main :: IO ()
+-- main = readSrc >>= parse >>= runPipeline
+main = runPipeline prg
+
+prg :: Exp
+prg = ETLam (Ident "a") (EFLam (Ident "a") (TVar $ Ident "a") (EVar (Ident "a")))
+
+parse :: String -> IO Exp
+parse s = do
   case pExp (myLexer s) of
     Left err  -> do
       putStrLn "SYNTAX ERROR"
       putStrLn err
       exitFailure
-    Right tree -> do
-      putStrLn $ show tree
-      case typecheck tree of
-        Left err -> putStrLn err
-        Right typed -> do
-          let val = eval' typed
-          putStrLn $ show val
+    Right tree -> return tree
+
+runPipeline :: Exp -> IO ()
+runPipeline e = do
+  print e
+  case typecheck e of
+    Left err -> putStrLn err
+    Right typed -> do
+      let val = evaluate typed
+      print val
+
 
 -- | Main: read file passed by only command line argument and call 'check'.
-
-main :: IO ()
-main = do
+readSrc :: IO String
+readSrc = do
   getArgs >>= \case
-    [file] -> readFile file >>= check
+    [file] -> readFile file
     _      -> do
       putStrLn "Usage: line <SourceFile>"
       exitFailure
