@@ -1,63 +1,68 @@
 module TypeChecker (typecheck) where
 
-import Data.Type.Equality
-import Kx.Abs
-import Types
+import qualified Kx.Abs as Abs
+import Kx.Abs(Typ, Typ(..), Ident)
 
-type M a = Either String a
+import Types(Typed(..), Exp (..))
 
-typecheck :: Exp -> M (Inferred '[])
-typecheck exp = infer EmptyC exp
+import qualified Data.Map as Map
 
-infer :: Ctx γ -> Exp -> M (Inferred γ)
-infer ctx (ENatZ) = Right $ Inferred Z
-infer ctx (ENatS exp) = do
-  term <- check ctx SNat exp
-  Right $ Inferred (S term)
-infer ctx (ENat i) = Right $ Inferred (natTerm i)
-  where
-    natTerm 0 = Z
-    natTerm x = S $ natTerm (x - 1)
-infer ctx (EVar id@(Ident n)) = case lookupCtx id ctx of
-  Nothing -> Left $ "No variable bound with name " ++ n
-  Just (Found typ idx) -> Right $ Inferred (Var idx)
-infer ctx (ERec nat base x y rec) = do
-  nTerm <- check ctx SNat nat
-  Inferred bTerm <- infer ctx base
-  let typ = (extractSTyp ctx bTerm)
-  rTerm <- check (ConsC x SNat (ConsC y typ ctx)) typ rec
-  Right $ Inferred (RecN bTerm rTerm nTerm)
-infer ctx (ELam id typA exp) = case toSTyp typA of
-  SomeSTyp atyp -> do
-    Inferred fterm <- infer (ConsC id atyp ctx) exp
-    Right $ Inferred (Lam atyp fterm)
-infer ctx (EApl f a) = do
-  Inferred fterm <- infer ctx f
-  case extractSTyp ctx fterm of
-    SFun atyp rtyp -> do
-      case check ctx atyp a of
-        Right aterm -> do
-          Right $ Inferred (App fterm aterm)
-        Left err -> Left $ "Function applied to incorrect argument type. " ++ err
-    _ -> Left "Function application applied to non-function term"
-infer ctx (ELet id vexp iexp) = do
-  Inferred vterm <- infer ctx vexp
-  let typ = extractSTyp ctx vterm
-  Inferred iterm <- infer (ConsC id typ ctx) iexp
-  Right $ Inferred $ Let vterm iterm
+type Ctx = (Map.Map Ident Typ, Map.Map Ident Typ)
 
-check :: Ctx γ -> STyp τ -> Exp -> M (γ ⊢ τ)
-check ctx typ exp = case infer ctx exp of
-  Left err -> Left err
-  Right (Inferred term) -> let typ' = (extractSTyp ctx term) in
-    case typEq typ typ' of
-      Nothing -> Left $ unwords [ "Expected:", show typ, "Got:", show typ' ]
-      Just Refl -> Right term
+bindVar:: Ident -> Typ -> Ctx -> Ctx 
+bindVar x e (xs, ts) = (Map.insert x e xs, ts) 
+bindTyp:: Ident -> Typ -> Ctx -> Ctx
+bindTyp t tau (xs, ts) = (xs, Map.insert t tau ts) 
 
-typEq :: STyp τ1 -> STyp τ2 -> Maybe (τ1 :~: τ2)
-typEq SNat      SNat        = Just Refl
-typEq (SFun a b) (SFun c d) = do
-  Refl <- typEq a c
-  Refl <- typEq b d
-  return Refl
-typEq _ _                   = Nothing
+getVar:: Ident -> Ctx -> Maybe Typ
+getVar x (xs, _) = Map.lookup x xs
+getTyp:: Ident -> Ctx -> Maybe Typ
+getTyp t (_, ts) = Map.lookup t ts
+
+typecheck :: Abs.Exp -> Either String (Typed Exp)
+typecheck e = infer (Map.empty, Map.empty) e 
+
+inferT :: Ctx -> Abs.Typ -> Either String Typ
+--16.1a
+inferT ctx (Abs.TVar  t) = case getTyp t ctx of
+    Just tau -> inferT ctx tau
+    Nothing -> Left "Type variable do not exisit in current context"
+--16.1b
+inferT ctx (Abs.TArr tau1 tau2) = do
+    tau1' <- inferT ctx tau1
+    tau2' <- inferT ctx tau2
+    (Right (TArr tau1' tau2'))
+--16.1c
+inferT ctx (Abs.TAll t tau) = do
+    tau' <- inferT ctx tau
+    (Right (TAll t tau'))
+
+infer :: Ctx -> Abs.Exp -> Either String (Typed Exp)
+--16.2a
+infer ctx (Abs.EVar x) = case getVar x ctx of
+    Just tau  -> Right (Typed (EVar x) tau)
+    Nothing -> Left "Variable do not exisit in current context"
+--16.2b
+infer ctx (Abs.EFLam x tau1 e) = do
+    tau1' <- inferT ctx tau1
+    e'@(Typed _ tau2') <- infer (bindVar x tau1' ctx) e
+    Right (Typed (EFLam x tau1' e') (TArr tau1' tau2'))
+--16.2c
+infer ctx (Abs.EFApp f x) = do
+    (Typed _ tau1') <- infer ctx x
+    case infer ctx f of
+        Right (Typed f' (TArr tau2' tau')) | tau1' == tau2' -> Right (Typed f' tau')
+                            | otherwise -> Left " "
+        _ -> Left "The type of a function aplication must be a arrow"
+--16.2d
+infer ctx (Abs.ETLam t e) = do -- Needs better names?
+    e'@(Typed _ tau') <- infer (bindTyp t (TVar t) ctx) e
+    Right (Typed (ETLam t e') (TAll t tau'))
+--16.2e
+infer ctx (Abs.ETApp f tau) = do
+    tau <- inferT ctx tau
+    case infer ctx f of
+        Right f'@(Typed _ (TAll t tau')) -> do
+            itau <- inferT (bindTyp t tau ctx) tau'
+            Right (Typed (ETApp f' tau) itau)
+        _ -> Left "Not a type lambda"
