@@ -1,2 +1,0 @@
-let f = \g:Nat -> Nat -> \x: Nat -> g x in
-let g = \y:Nat -> y in f g 5
