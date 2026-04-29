@@ -6,15 +6,21 @@ import Kx.Abs
 
 import TypeChecker
 import Evaluator
+import Desugar
 
 -- | Parse, type check, and interpret a program given by the @String@.
 
 main :: IO ()
 -- main = readSrc >>= parse >>= runPipeline
-main = runPipeline prg
+main = runPipeline idFun
 
 prg :: Exp
 prg = ETLam (Ident "a") (EFLam (Ident "a") (TVar $ Ident "a") (EVar (Ident "a")))
+
+idFun =
+  ETApp
+    (ETLam (Ident "a") (EFLam (Ident "x") (TVar $ Ident "a") (EVar $ Ident "x")))
+    (TVar $ Ident "b")
 
 parse :: String -> IO Exp
 parse s = do
@@ -27,10 +33,12 @@ parse s = do
 
 runPipeline :: Exp -> IO ()
 runPipeline e = do
-  print e
-  case typecheck e of
+  let e' = desugar e
+  print e'
+  case typecheck e' of
     Left err -> putStrLn err
     Right typed -> do
+      print typed
       let val = evaluate typed
       print val
 
