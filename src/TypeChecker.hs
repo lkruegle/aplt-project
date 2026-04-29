@@ -40,7 +40,7 @@ infer c (EFApp f e) = do
     TArr _ _ -> Left "Argument of incorrect type"
     _ -> Left "Applied argument to non-lambda"
 infer c (ETLam e) = do
-  tau <- infer c e
+  tau <- infer (bindTyp c) e
   Right $ TAll tau
 infer c (ETApp e tau) = do
   check c tau
