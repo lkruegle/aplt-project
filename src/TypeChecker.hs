@@ -10,7 +10,10 @@ type Ctx = Context Typ
 
 bindTyp :: Ctx -> Ctx
 -- TODO: Implement shifting to bind a fresh Typ with i=0 and shift all others up
-bindTyp = _
+bindTyp c = c { boundTyps = TVar 0 : map (shiftTyp 0) (boundTyps c) }
+
+bindTerm :: Typ -> Ctx -> Ctx
+bindTerm = bindTerm'
 
 lookupTyp :: Int -> Ctx -> Either String Typ
 lookupTyp i c = case lookupTyp' i c of
@@ -24,17 +27,17 @@ lookupTerm i c = case lookupTerm' i c of
 
 infer :: Ctx -> Exp -> Either String Typ
 infer c (EVar i) = lookupTerm i c
-infer c (EFree (Ident x)) = Left $ "Free Variable " <> x
+infer _ (EFree (Ident x)) = Left $ "Free Variable " <> x
 infer c (EFLam tau1 e) = do
   check c tau1
   tau2 <- infer (bindTerm tau1 c) e
   Right (TArr tau1 tau2)
 infer c (EFApp f e) = do
-  tf <- infer ctx f
-  te <- infer ctx e
+  tf <- infer c f
+  te <- infer c e
   case tf of
-    TArr t1 t2 | t1 == tx -> Right t2
-    TArr t1 _ -> Left "Argument of incorrect type"
+    TArr t1 t2 | t1 == te -> Right t2
+    TArr _ _ -> Left "Argument of incorrect type"
     _ -> Left "Applied argument to non-lambda"
 infer c (ETLam e) = do
   tau <- infer c e
@@ -48,6 +51,6 @@ infer c (ETApp e tau) = do
 
 check :: Ctx -> Typ -> Either String ()
 check c (TVar i) = lookupTyp i c >> Right ()
-check c (TFree _) = Right ()
 check c (TArr t1 t2) = check c t1 >> check c t2
 check c (TAll t) = check (bindTyp c) t
+check _ _ = Right ()

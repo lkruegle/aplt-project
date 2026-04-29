@@ -12,7 +12,11 @@ desugar :: A.Exp -> Exp
 desugar = desugarExp $ emptyContext
 
 type SugarCtx = Context Ident
+
+bindTyp :: Ident -> Context Ident -> Context Ident
 bindTyp = bindTyp'
+
+bindTerm :: Ident -> Context Ident -> Context Ident
 bindTerm = bindTerm'
 
 desugarTyp :: SugarCtx -> A.Typ -> Typ
