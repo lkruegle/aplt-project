@@ -39,9 +39,7 @@ runPipeline e = do
     Left err -> putStrLn err
     Right typed -> do
       print typed
-      let val = evaluate typed
-      print val
-
+      print . evaluate $ e'
 
 -- | Main: read file passed by only command line argument and call 'check'.
 readSrc :: IO String
