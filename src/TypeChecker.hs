@@ -1,30 +1,43 @@
 module TypeChecker (typecheck) where
 
 import Types
-import BookKeeping
+import BookKeeping hiding (bindTyp)
 
+-- | Entrypoint for the typechecker
+--
+-- Given a desugared expression, infer the type the expression will evaluate
+-- to.
 typecheck :: Exp -> Either String Typ
 typecheck = infer emptyContext
 
+-- | The Context type for the type checker.
+--
+-- Binds type variables and terms to types.
 type Ctx = Context Typ
 
+-- | Bind a type variable in the context.
+--
+-- This function binds a new "current" type variable and shifts all existing
+-- type variables up by 1 in response.
 bindTyp :: Ctx -> Ctx
--- TODO: Implement shifting to bind a fresh Typ with i=0 and shift all others up
 bindTyp c = c { boundTyps = TVar 0 : map (shiftTyp 0) (boundTyps c) }
 
-bindTerm :: Typ -> Ctx -> Ctx
-bindTerm = bindTerm'
-
+-- | Looks up the type of the type variable at the given de bruijn index.
 lookupTyp :: Int -> Ctx -> Either String Typ
 lookupTyp i c = case lookupTyp' i c of
   Just t -> Right t
   Nothing -> Left "Out of scope type"
 
+-- | Looks up the type of the term variable at the given de bruijn index.
 lookupTerm :: Int -> Ctx -> Either String Typ
 lookupTerm i c = case lookupTerm' i c of
   Just t -> Right t
   Nothing -> Left "Out of scope term"
 
+-- | Infer the type of the given expression in the given context.
+--
+-- If the expression and context are well formed, this method will evaluate to
+-- the type of the expression.
 infer :: Ctx -> Exp -> Either String Typ
 infer c (EVar i) = lookupTerm i c
 infer _ (EFree (Ident x)) = Left $ "Free Variable " <> x
@@ -49,6 +62,7 @@ infer c (ETApp e tau) = do
     TAll body -> Right $ substTyp tau body
     _ -> Left "Type application failed"
 
+-- | Check that the given type is well-formed.
 check :: Ctx -> Typ -> Either String ()
 check c (TVar i) = lookupTyp i c >> Right ()
 check c (TArr t1 t2) = check c t1 >> check c t2

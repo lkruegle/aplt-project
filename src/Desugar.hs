@@ -8,28 +8,29 @@ import Types
 import BookKeeping
 import Data.List (elemIndex)
 
+-- | Entrypoint to the desugaring step
+--
+-- Converts The abstract syntax defined by the grammar into the core
+-- language, desugaring any syntax-only features.
 desugar :: A.Exp -> Exp
-desugar = desugarExp $ emptyContext
+desugar = desugarExp emptyContext
 
+-- | Desugaring context used for managing variable binding
 type SugarCtx = Context Ident
 
-bindTyp :: Ident -> Context Ident -> Context Ident
-bindTyp = bindTyp'
-
-bindTerm :: Ident -> Context Ident -> Context Ident
-bindTerm = bindTerm'
-
+-- | Desugar a type
 desugarTyp :: SugarCtx -> A.Typ -> Typ
 desugarTyp s (A.TVar t) = case elemIndex t (boundTyps s) of
-  Just i -> (TVar i)
-  Nothing -> (TFree t)
+  Just i -> TVar i
+  Nothing -> TFree t
 desugarTyp s (A.TArr tau tau') = TArr (desugarTyp s tau) (desugarTyp s tau')
 desugarTyp s (A.TAll t tau)  = TAll (desugarTyp (bindTyp t s) tau)
 
+-- | Desugar an expression
 desugarExp :: SugarCtx -> A.Exp -> Exp
 desugarExp s (A.EVar x) = case elemIndex x (boundTerms s) of
-  Just i -> (EVar i)
-  Nothing -> (EFree x)
+  Just i -> EVar i
+  Nothing -> EFree x
 desugarExp s (A.EFApp f e) =
   EFApp (desugarExp s f) (desugarExp s e)
 desugarExp s (A.EFLam x tau e) =
