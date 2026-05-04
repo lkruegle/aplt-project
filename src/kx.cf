@@ -7,7 +7,7 @@ coercions Typ 3;
 
 EVar.  Exp4 ::= Ident;
 EFApp. Exp2 ::= Exp2 Exp3;
+ETApp. Exp2 ::= Exp2 "[" Typ "]";
 EFLam. Exp1 ::= "λ" Ident ":" Typ "." Exp1;
 ETLam. Exp1 ::= "Λ" Ident "." Exp1;
-ETApp. Exp ::= Exp "[" Typ "]";
 coercions Exp 4;
