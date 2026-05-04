@@ -11,16 +11,7 @@ import Desugar
 -- | Parse, type check, and interpret a program given by the @String@.
 
 main :: IO ()
--- main = readSrc >>= parse >>= runPipeline
-main = runPipeline idFun
-
-prg :: Exp
-prg = ETLam (Ident "a") (EFLam (Ident "a") (TVar $ Ident "a") (EVar (Ident "a")))
-
-idFun =
-  ETApp
-    (ETLam (Ident "a") (EFLam (Ident "x") (TVar $ Ident "a") (EVar $ Ident "x")))
-    (TVar $ Ident "b")
+main = readSrc >>= parse >>= runPipeline
 
 parse :: String -> IO Exp
 parse s = do
