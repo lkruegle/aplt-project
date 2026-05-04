@@ -12,15 +12,6 @@ import Desugar
 
 main :: IO ()
 main = readSrc >>= parse >>= runPipeline
--- main = runPipeline idFun
-
-prg :: Exp
-prg = ETLam (Ident "a") (EFLam (Ident "a") (TVar $ Ident "a") (EVar (Ident "a")))
-
-idFun =
-  ETApp
-    (ETLam (Ident "a") (EFLam (Ident "x") (TVar $ Ident "a") (EVar $ Ident "x")))
-    (TVar $ Ident "b")
 
 parse :: String -> IO Exp
 parse s = do
