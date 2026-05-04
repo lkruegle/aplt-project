@@ -6,8 +6,8 @@ TAll. Typ1 ::= "forall" Ident "." Typ1;
 coercions Typ 3;
 
 EVar.  Exp4 ::= Ident;
-ETApp. Exp3 ::= Exp3 "[" Typ "]";
 EFApp. Exp2 ::= Exp2 Exp3;
-EFLam. Exp ::= "\\" Ident ":" Typ "." Exp;
-ETLam. Exp ::= "/\\" Ident "." Exp;
+EFLam. Exp1 ::= "\\" Ident ":" Typ "." Exp1;
+ETLam. Exp1 ::= "/\\" Ident "." Exp1;
+ETApp. Exp ::= Exp "[" Typ "]";
 coercions Exp 4;
