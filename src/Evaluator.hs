@@ -19,6 +19,10 @@ toVal (ETLam e) = Just $ VTLam e
 toVal e@EZero = Just $ VNat (toInt e)
 -- 9.2b
 toVal e@(ESucc _) = Just $ VNat (toInt e)
+-- 10.4a --special case of rule that are technically eager
+toVal (ETupl es) = do
+  vs <- mapM toVal es
+  Just $ VProd vs
 toVal _ = Nothing
 
 toInt :: Exp -> Int
@@ -41,5 +45,9 @@ step (EFApp e arg) = EFApp (step e) arg
 step (ETApp (ETLam body) t) = substTypInExp t body
 -- 16.3g
 step (ETApp e t) = ETApp (step e) t
+--10.4c and 10.4d
+step (EProj e i) = case e of
+  ETupl es -> es !! i
+  _ -> EProj (step e) i
 step e =
   error $ "Given expression " <> show e <> " has no valid step-wise dynamics."

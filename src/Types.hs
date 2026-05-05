@@ -8,6 +8,7 @@ data Typ
   = TNat
   | TVar Int
   | TFree Ident
+  | TProd [Typ]
   | TArr Typ Typ
   | TAll Typ
   deriving (Show, Eq)
@@ -17,6 +18,8 @@ data Exp
   | ESucc Exp
   | EVar Int
   | EFree Ident
+  | ETupl [Exp]
+  | EProj Exp Int
   | EFLam Typ Exp
   | EFApp Exp Exp
   | ETLam Exp
@@ -25,6 +28,7 @@ data Exp
 
 data Val
   = VNat Int
+  | VProd [Val]
   | VLam Typ Exp
   | VTLam Exp
   deriving (Show, Eq)
