@@ -1,0 +1,10 @@
+let f : ℕ -> ℕ = (λx : ℕ . Succ x) in
+(λy : ℕ -> ℕ . y Zero) f
+
+-- DESUGARED LET:
+-- (λf : ℕ -> ℕ . (λy : ℕ -> ℕ . y Zero) f) (λx : ℕ . Succ x)
+
+-- LET WITH SUBSITUTION:
+-- (λy : ℕ -> ℕ . y Zero) (λx : ℕ . Succ x)
+
+

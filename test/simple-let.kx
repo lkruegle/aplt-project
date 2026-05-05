@@ -1,2 +1,0 @@
-let f : ℕ -> ℕ = (λx : ℕ . Succ (Succ x)) in
-f (Succ Zero)
