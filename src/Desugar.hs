@@ -41,6 +41,8 @@ desugarExp s (A.ETApp e tau) =
   ETApp (desugarExp s e) (desugarTyp s tau)
 desugarExp s (A.ETLam t e) =
   ETLam (desugarExp (bindTyp t s) e)
+desugarExp s (A.ELet x t e1 e2) =
+  desugarExp s $ A.EFApp (A.EFLam x t e2) e1
 desugarExp _ A.EZero = EZero
 desugarExp s (A.ESucc e) =
   ESucc $ desugarExp s e
