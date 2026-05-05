@@ -15,3 +15,6 @@ EFLam. Exp1 ::= "λ" Ident ":" Typ "." Exp1;
 ETLam. Exp1 ::= "Λ" Ident "." Exp1;
 ELet.  Exp ::= "let" Ident ":" Typ "=" Exp "in" Exp;
 coercions Exp 4;
+
+comment "--" ;
+comment "{-" "-}" ;
