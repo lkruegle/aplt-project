@@ -43,6 +43,7 @@ shiftTyp c (TVar i)
   | otherwise = TVar i
 shiftTyp c (TArr arg ret) = TArr (shiftTyp c arg) (shiftTyp c ret)
 shiftTyp c (TAll t) = TAll $ shiftTyp (c + 1) t
+shiftTyp c (TProd taus) = TProd $ map (shiftTyp c) taus
 shiftTyp _ t = t
 
 -- | Perform type variable substitution.
@@ -54,6 +55,7 @@ substTyp x (TVar 0) = x
 substTyp x (TArr arg ret) = TArr (substTyp x arg) (substTyp x ret)
 substTyp x (TAll t) = TAll (substTyp x t)
 substTyp _ (TVar i) = TVar (i - 1) -- binding shifts vars down
+substTyp x (TProd taus) = TProd $ map (substTyp x) taus
 substTyp _ t = t
 
 -- | Perform term variable shifting of de bruijn indices.
@@ -68,6 +70,8 @@ shiftExp c (EFApp f a) = EFApp (shiftExp c f) (shiftExp c a)
 shiftExp c (ETLam e) = ETLam $ shiftExp c e
 shiftExp c (ETApp e t) = ETApp (shiftExp c e) t
 shiftExp c (ESucc e) = ESucc (shiftExp c e)
+shiftExp c (ETupl es) = ETupl (map (shiftExp c) es)
+shiftExp c (EProj e i) = EProj (shiftExp c e) i
 shiftExp _ e = e
 
 -- | Perform term substitution.
@@ -89,6 +93,8 @@ substExp = sExp 0
     sExp d e (ETLam body) = ETLam $ sExp (d + 1) (shiftExp 0 e) body
     sExp d e (ETApp body t) = ETApp (sExp d e body) t
     sExp d e (ESucc n) = ESucc (sExp d e n)
+    sExp d e (ETupl es) = ETupl (map (sExp d e) es)
+    sExp d e (EProj e' i) = EProj (sExp d e e') i
     sExp _ _ e' = e'
     -- | Shift all variables in e with indices above c by n
     shiftExpN 0 _ e = e
@@ -103,4 +109,6 @@ substTypInExp t (ETLam body) = ETLam $ substTypInExp (shiftTyp 0 t) body
 substTypInExp t (EFLam tau body) = EFLam (substTyp t tau) (substTypInExp t body)
 substTypInExp t (EFApp fun arg) = EFApp (substTypInExp t fun) (substTypInExp t arg)
 substTypInExp t (ETApp e tau) = ETApp (substTypInExp t e) (substTyp t tau)
+substTypInExp t (ETupl es) = ETupl (map (substTypInExp t) es)
+substTypInExp t (EProj e' i) = EProj (substTypInExp t e') i
 substTypInExp _ e = e
