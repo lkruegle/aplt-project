@@ -26,6 +26,7 @@ desugarTyp s (A.TVar t) = case elemIndex t (boundTyps s) of
 desugarTyp s (A.TArr tau tau') = TArr (desugarTyp s tau) (desugarTyp s tau')
 desugarTyp s (A.TAll t tau)  = TAll (desugarTyp (bindTyp t s) tau)
 desugarTyp _ A.TNat = TNat
+desugarTyp s (A.TProd taus) = TProd (map (desugarTyp s) taus)
 
 -- | Desugar an expression
 desugarExp :: SugarCtx -> A.Exp -> Exp
@@ -46,3 +47,5 @@ desugarExp s (A.ELet x t e1 e2) =
 desugarExp _ A.EZero = EZero
 desugarExp s (A.ESucc e) =
   ESucc $ desugarExp s e
+desugarExp s (A.ETupl es) = ETupl (map (desugarExp s) es)
+desugarExp s (A.EProj e i) = EProj (desugarExp s e) (fromIntegral i)

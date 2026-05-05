@@ -67,11 +67,21 @@ infer c (ESucc e) = do
   case tau of
     TNat -> Right TNat
     _ -> Left $ "Succ applied to non-nat: " <> show tau
-
+infer c (ETupl es) = do
+  taus <- mapM (infer c ) es
+  Right (TProd taus)
+infer c (EProj e i) = do
+  tau <- infer c e
+  case tau of
+    TProd taus | i < 0 -> Left $ "Projection index must be grater then zero"
+               | i < length taus -> Right (taus !! i)
+               | otherwise -> Left $ "Projection index " <> show i <> " is out of bound for: " <> show tau
+    _ -> Left $ "Projection applied to non-product: " <> show tau
 
 -- | Check that the given type is well-formed.
 check :: Ctx -> Typ -> Either String ()
 check c (TVar i) = lookupTyp i c >> Right ()
 check c (TArr t1 t2) = check c t1 >> check c t2
 check c (TAll t) = check (bindTyp c) t
+check c (TProd taus) = mapM_ (check c) taus
 check _ _ = Right ()
