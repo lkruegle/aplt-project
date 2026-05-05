@@ -60,7 +60,14 @@ infer c (ETApp e tau) = do
   tau' <- infer c e
   case tau' of
     TAll body -> Right $ substTyp tau body
-    _ -> Left "Type application failed"
+    _ -> Left $ "Type application failed, " <> show tau <> " cannot be substituted in " <> show tau'
+infer _ EZero = Right TNat
+infer c (ESucc e) = do
+  tau <- infer c e
+  case tau of
+    TNat -> Right TNat
+    _ -> Left $ "Succ applied to non-nat: " <> show tau
+
 
 -- | Check that the given type is well-formed.
 check :: Ctx -> Typ -> Either String ()

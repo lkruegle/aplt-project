@@ -1,0 +1,3 @@
+let f : ℕ -> ℕ = λx : ℕ . Succ (Succ x) in
+let g : ℕ -> ℕ = λy : ℕ . Succ y in
+f (g Zero)
