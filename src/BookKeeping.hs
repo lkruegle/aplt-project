@@ -67,6 +67,7 @@ shiftExp c (EFLam t e) = EFLam t $ shiftExp (c + 1) e
 shiftExp c (EFApp f a) = EFApp (shiftExp c f) (shiftExp c a)
 shiftExp c (ETLam e) = ETLam $ shiftExp c e
 shiftExp c (ETApp e t) = ETApp (shiftExp c e) t
+shiftExp c (ESucc e) = ESucc (shiftExp c e)
 shiftExp _ e = e
 
 -- | Perform term substitution.
@@ -74,14 +75,24 @@ shiftExp _ e = e
 -- Substitutes the given term for all variables with index 0 and shifts all
 -- other variables down by 1.
 substExp :: Exp -> Exp -> Exp
-substExp e (EVar 0) = e
-substExp _ (EVar i) = EVar $ i - 1
-substExp e (EFLam t body) = EFLam t $ substExp e body
-substExp e (EFApp fun arg) = EFApp (substExp e fun) (substExp e arg)
-substExp e (ETLam body) = ETLam $ substExp e body
-substExp e (ETApp body t) = ETApp (substExp e body) t
-substExp e (ESucc n) = ESucc (substExp e n)
-substExp _ e' = e'
+substExp = sExp 0
+  where
+    -- | Do substitution while tracking the current depth at which substitution
+    -- is happening. If a lambda occurs, shift all existing indices up by 1.
+    sExp d e v@(EVar i)
+      -- Shift the variables in e up by d to keep them valid
+      | i == d = shiftExpN d 0 e
+      | i > d = EVar (i - 1)
+      | otherwise = v
+    sExp d e (EFLam t body) = EFLam t $ sExp (d + 1) (shiftExp 0 e) body
+    sExp d e (EFApp fun arg) = EFApp (sExp d e fun) (sExp d e arg)
+    sExp d e (ETLam body) = ETLam $ sExp (d + 1) (shiftExp 0 e) body
+    sExp d e (ETApp body t) = ETApp (sExp d e body) t
+    sExp d e (ESucc n) = ESucc (sExp d e n)
+    sExp _ _ e' = e'
+    -- | Shift all variables in e with indices above c by n
+    shiftExpN 0 _ e = e
+    shiftExpN n c e = shiftExpN (n-1) c (shiftExp c e)
 
 -- | Perform type substitution across the given expression
 --
