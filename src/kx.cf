@@ -1,11 +1,14 @@
 entrypoints Exp;
 
+TNat. Typ4 ::= "ℕ";
 TVar. Typ3 ::= Ident;
 TArr. Typ2 ::= Typ3 "->" Typ2;
 TAll. Typ1 ::= "forall" Ident "." Typ1;
-coercions Typ 3;
+coercions Typ 4;
 
 EVar.  Exp4 ::= Ident;
+EZero. Exp4 ::= "Zero";
+ESucc. Exp3 ::= "Succ" Exp4;
 EFApp. Exp2 ::= Exp2 Exp3;
 ETApp. Exp2 ::= Exp2 "[" Typ "]";
 EFLam. Exp1 ::= "λ" Ident ":" Typ "." Exp1;

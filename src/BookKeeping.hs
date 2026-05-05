@@ -80,6 +80,7 @@ substExp e (EFLam t body) = EFLam t $ substExp e body
 substExp e (EFApp fun arg) = EFApp (substExp e fun) (substExp e arg)
 substExp e (ETLam body) = ETLam $ substExp e body
 substExp e (ETApp body t) = ETApp (substExp e body) t
+substExp e (ESucc n) = ESucc (substExp e n)
 substExp _ e' = e'
 
 -- | Perform type substitution across the given expression

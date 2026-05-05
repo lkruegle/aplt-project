@@ -5,14 +5,17 @@ module Types (
 import Kx.Abs(Ident(..))
 
 data Typ
-  = TVar Int
+  = TNat
+  | TVar Int
   | TFree Ident
   | TArr Typ Typ
   | TAll Typ
   deriving (Show, Eq)
 
 data Exp
-  = EVar Int
+  = EZero
+  | ESucc Exp
+  | EVar Int
   | EFree Ident
   | EFLam Typ Exp
   | EFApp Exp Exp
@@ -21,6 +24,7 @@ data Exp
   deriving (Show, Eq)
 
 data Val
-  = VLam Typ Exp
+  = VNat Int
+  | VLam Typ Exp
   | VTLam Exp
   deriving (Show, Eq)

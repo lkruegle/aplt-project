@@ -15,7 +15,19 @@ toVal :: Exp -> Maybe Val
 toVal (EFLam t e) = Just $ VLam t e
 -- 16.3b
 toVal (ETLam e) = Just $ VTLam e
+-- 9.2a
+toVal e@EZero = Just $ VNat (toInt e)
+-- 9.2b
+toVal e@(ESucc _) = Just $ VNat (toInt e)
 toVal _ = Nothing
+
+toInt :: Exp -> Int
+toInt EZero = 0
+-- ESucc must evaluate e here to handle lazy dynamics
+toInt (ESucc e) = case evaluate e of
+  VNat n -> 1 + n
+  v -> error $ "Cannot convert value " <> show v <> " to Int."
+toInt e = error $ "Cannot convert " <> show e <> " to Int."
 
 -- | Implement the step-wise evaluation of an expression
 --
