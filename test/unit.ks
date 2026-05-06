@@ -1,0 +1,2 @@
+let unit : <> = <> in
+unit

@@ -1,1 +1,1 @@
-<Zero, Succ (Zero)><0>
+<Zero, Succ (Zero)>.0
