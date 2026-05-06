@@ -23,6 +23,9 @@ toVal e@(ESucc _) = Just $ VNat (toInt e)
 toVal (ETupl es) = do
   vs <- mapM toVal es
   Just $ VProd vs
+
+toVal (EInj i e) = VInj i <$> toVal e
+
 toVal _ = Nothing
 
 toInt :: Exp -> Int
@@ -49,5 +52,8 @@ step (ETApp e t) = ETApp (step e) t
 step (EProj e i) = case e of
   ETupl es -> es !! i
   _ -> EProj (step e) i
+
+-- dynamics of sums and products
+
 step e =
   error $ "Given expression " <> show e <> " has no valid step-wise dynamics."

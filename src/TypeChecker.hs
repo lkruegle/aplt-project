@@ -48,15 +48,18 @@ check c ty (ECase es e) = do
   case ty' of
     TSum tys | length tys == length es -> 
                let go [] [] = pure ()
-                   go (e:es) (ty:tys) = do
-                    check (bindTerm ty c) ty e
+                   go (e:es) (ty':tys) = do
+                    check (bindTerm ty' c) ty e
                     go es tys
                 in go es tys
              | otherwise -> Left "Number of cases does not match sum type"
     _ -> Left "Case distinction on non sum-type."
+check c (TArr t1 t2) (EFLam t1' e) = do
+  guard "Function takes wrong argument" (t1' == t1)
+  check (bindTerm t1 c) t2 e
 check c ty exp = do
   ty' <- infer c exp
-  guard "Inferred type does not meet expected type." (ty == ty')
+  guard ("Inferred type '" <> show ty' <> "' of exp '" <> show exp <> "' does not meet expected type '" <> show ty <> "'.") (ty == ty')
 
 -- | Infer the type of the given expression in the given context.
 --
