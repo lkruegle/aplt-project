@@ -21,7 +21,7 @@ custom-setup
     -- , BNFC    >= 2.8.4 && < 2.10
 
 executable line
-  main-is:            main.hs
+  main-is:            Main.hs
   hs-source-dirs:     src
   other-modules:
     Evaluator

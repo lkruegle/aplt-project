@@ -3,24 +3,30 @@ entrypoints Exp;
 TNat.  Typ5 ::= "ℕ";
 TVar.  Typ4 ::= Ident;
 TProd. Typ3 ::= "<" [Typ] ">";
+TSum . Typ3 ::= "[" [Typ] "]";
 TArr.  Typ2 ::= Typ3 "->" Typ2;
 TAll.  Typ1 ::= "forall" Ident "." Typ1;
 coercions Typ 5;
 separator nonempty Typ "," ;
 
 
+separator Case "," ;
+Match. Case ::= Ident "->" Exp ;
+
 EVar.  Exp5 ::= Ident;
 EZero. Exp5 ::= "Zero";
 ESucc. Exp4 ::= "Succ" Exp5;
 ETupl. Exp3 ::= "<" [Exp] ">";
 EProj. Exp3 ::= Exp3 "<" Integer ">";
+ECase. Exp3 ::= "case" "[" [Case] "]" Exp3;
+EInj.  Exp3 ::= "[" Integer "]" Exp3;
 EFApp. Exp3 ::= Exp3 Exp4;
 ETApp. Exp3 ::= Exp3 "[" Typ "]";
 EFLam. Exp2 ::= "λ" Ident ":" Typ "." Exp2;
 ETLam. Exp2 ::= "Λ" Ident "." Exp2;
 ELet.  Exp1 ::= "let" Ident ":" Typ "=" Exp2 "in" Exp;
 coercions Exp 5;
-separator nonempty Exp "," ;
+separator Exp "," ;
 
 comment "--" ;
 comment "{-" "-}" ;

@@ -2,7 +2,8 @@ import System.Environment (getArgs)
 import System.Exit        (exitFailure)
 
 import Kx.Par            (pExp, myLexer)
-import Kx.Abs
+import Kx.Abs            
+import Kx.Print          (printTree)
 
 import TypeChecker
 import Evaluator
@@ -24,6 +25,7 @@ parse s = do
 
 runPipeline :: Exp -> IO ()
 runPipeline e = do
+  putStrLn $ printTree e
   let e' = desugar e
   print e'
   case typecheck e' of
