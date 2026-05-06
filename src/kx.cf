@@ -6,7 +6,7 @@ TProd. Typ3 ::= "<" [Typ] ">";
 TArr.  Typ2 ::= Typ3 "->" Typ2;
 TAll.  Typ1 ::= "forall" Ident "." Typ1;
 coercions Typ 5;
-separator nonempty Typ "," ;
+separator Typ "," ;
 
 
 EVar.  Exp5 ::= Ident;
@@ -20,7 +20,7 @@ EFLam. Exp2 ::= "λ" Ident ":" Typ "." Exp2;
 ETLam. Exp2 ::= "Λ" Ident "." Exp2;
 ELet.  Exp1 ::= "let" Ident ":" Typ "=" Exp2 "in" Exp;
 coercions Exp 5;
-separator nonempty Exp "," ;
+separator Exp "," ;
 
 comment "--" ;
 comment "{-" "-}" ;
