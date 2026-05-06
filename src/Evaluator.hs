@@ -19,10 +19,8 @@ toVal (ETLam e) = Just $ VTLam e
 toVal e@EZero = Just $ VNat (toInt e)
 -- 9.2b
 toVal e@(ESucc _) = Just $ VNat (toInt e)
--- 10.4a --special case of rule that are technically eager
-toVal (ETupl es) = do
-  vs <- mapM toVal es
-  Just $ VProd vs
+-- 10.4a
+toVal (ETupl es) = Just $ VProd es
 toVal _ = Nothing
 
 toInt :: Exp -> Int
