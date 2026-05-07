@@ -43,7 +43,7 @@ check c ty (EInj i e) = case ty of
               | i < length taus -> check c (taus !! i) e
               | otherwise -> Left $ "Injection index " <> show i <> " is out of bound for: " <> show ty
     _ -> Left "Inferred type does not meet expected type." 
-check c ty (ECase es e) = do
+check c ty (ECase e es) = do
   ty' <- infer c e
   case ty' of
     TSum tys | length tys == length es -> 

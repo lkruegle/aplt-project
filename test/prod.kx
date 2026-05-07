@@ -1,2 +1,2 @@
 let x: <ℕ, ℕ> = <Zero, Succ (Zero)> in
-    x<0>
+    x.0

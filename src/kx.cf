@@ -7,7 +7,7 @@ TSum . Typ3 ::= "[" [Typ] "]";
 TArr.  Typ2 ::= Typ3 "->" Typ2;
 TAll.  Typ1 ::= "forall" Ident "." Typ1;
 coercions Typ 5;
-separator nonempty Typ "," ;
+separator Typ "," ;
 
 
 separator Case "," ;
@@ -17,9 +17,9 @@ EVar.  Exp5 ::= Ident;
 EZero. Exp5 ::= "Zero";
 ESucc. Exp4 ::= "Succ" Exp5;
 ETupl. Exp3 ::= "<" [Exp] ">";
-EProj. Exp3 ::= Exp3 "<" Integer ">";
-ECase. Exp3 ::= "case" "[" [Case] "]" Exp3;
-EInj.  Exp3 ::= "[" Integer "]" Exp3;
+ECase. Exp3 ::= "case" Exp "of" "[" [Case] "]";
+EInj.  Exp3 ::= Integer "." Exp3;
+EProj. Exp3 ::= Exp3 "." Integer ;
 EFApp. Exp3 ::= Exp3 Exp4;
 ETApp. Exp3 ::= Exp3 "[" Typ "]";
 EFLam. Exp2 ::= "λ" Ident ":" Typ "." Exp2;

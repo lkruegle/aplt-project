@@ -21,7 +21,7 @@ data Exp
   | EFree Ident
   | ETupl [Exp]
   | EProj Exp Int
-  | ECase [Exp] Exp
+  | ECase Exp [Exp]
   | EInj  Int Exp
   | EFLam Typ Exp
   | EFApp Exp Exp

@@ -3,11 +3,9 @@ module Evaluator where
 import Types
 import BookKeeping
 
-import Debug.Trace
-
 -- | Evaluator entrypoint, convert an expression to a Value
 evaluate :: Exp -> Val
-evaluate e = trace ("trace: " <> show e) $ case toVal e of
+evaluate e = case toVal e of
   Just val -> val
   Nothing -> evaluate . step $ e
 
@@ -53,9 +51,9 @@ step (EProj e i) = case e of
   ETupl es -> es !! i
   _ -> EProj (step e) i
 
-step (ECase es e) = case e of
-  EInj i e -> substExp e (es !! i)
-  _ -> ECase es (step e)
+step (ECase e es) = case e of
+  EInj i e' -> substExp e' (es !! i)
+  _ -> ECase (step e) es
 
 -- dynamics of sums and products
 

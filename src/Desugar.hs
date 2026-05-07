@@ -50,7 +50,7 @@ desugarExp s (A.ESucc e) =
   ESucc $ desugarExp s e
 desugarExp s (A.ETupl es) = ETupl (map (desugarExp s) es)
 desugarExp s (A.EProj e i) = EProj (desugarExp s e) (fromIntegral i)
-desugarExp s (A.ECase es e) = ECase (map go es) (desugarExp s e)
+desugarExp s (A.ECase e es) = ECase (desugarExp s e) (map go es)
   where
     go (A.Match i e) = desugarExp (bindTerm i s) e
 desugarExp s (A.EInj i e) = EInj (fromIntegral i) (desugarExp s e)
