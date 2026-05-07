@@ -19,8 +19,11 @@ toVal (ETLam e) = Just $ VTLam e
 toVal e@EZero = Just $ VNat (toInt e)
 -- 9.2b
 toVal e@(ESucc _) = Just $ VNat (toInt e)
--- 10.4a
+-- 10.4a --special case of rule that are technically eager
 toVal (ETupl es) = Just $ VProd es
+
+toVal (EInj i e) = Just $ VSum i e
+
 toVal _ = Nothing
 
 toInt :: Exp -> Int
@@ -47,5 +50,12 @@ step (ETApp e t) = ETApp (step e) t
 step (EProj e i) = case e of
   ETupl es -> es !! i
   _ -> EProj (step e) i
+
+step (ECase e es) = case e of
+  EInj i e' -> substExp e' (es !! i)
+  _ -> ECase (step e) es
+
+-- dynamics of sums and products
+
 step e =
   error $ "Given expression " <> show e <> " has no valid step-wise dynamics."
