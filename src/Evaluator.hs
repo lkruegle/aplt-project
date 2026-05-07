@@ -3,9 +3,11 @@ module Evaluator where
 import Types
 import BookKeeping
 
+import Debug.Trace
+
 -- | Evaluator entrypoint, convert an expression to a Value
 evaluate :: Exp -> Val
-evaluate e = case toVal e of
+evaluate e = trace ("trace: " <> show e) $ case toVal e of
   Just val -> val
   Nothing -> evaluate . step $ e
 
@@ -20,11 +22,9 @@ toVal e@EZero = Just $ VNat (toInt e)
 -- 9.2b
 toVal e@(ESucc _) = Just $ VNat (toInt e)
 -- 10.4a --special case of rule that are technically eager
-toVal (ETupl es) = do
-  vs <- mapM toVal es
-  Just $ VProd vs
+toVal (ETupl es) = Just $ VProd es
 
-toVal (EInj i e) = VInj i <$> toVal e
+toVal (EInj i e) = Just $ VSum i e
 
 toVal _ = Nothing
 
@@ -52,6 +52,10 @@ step (ETApp e t) = ETApp (step e) t
 step (EProj e i) = case e of
   ETupl es -> es !! i
   _ -> EProj (step e) i
+
+step (ECase es e) = case e of
+  EInj i e -> substExp e (es !! i)
+  _ -> ECase es (step e)
 
 -- dynamics of sums and products
 

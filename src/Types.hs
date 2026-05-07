@@ -31,8 +31,8 @@ data Exp
 
 data Val
   = VNat Int
-  | VProd [Val]
-  | VInj Int Val
+  | VProd [Exp]
+  | VSum Int Exp
   | VLam Typ Exp
   | VTLam Exp
   deriving (Show, Eq)
