@@ -9,6 +9,12 @@ make
 # To remove build artifacts
 make clean
 ```
+# TODO
+
+- Write the report
+- Rewrite language implementation to use inline proofs
+- (Stretch) Implement recursive types or Recursion or (If stack machine) Control flow to give (co)inductive types
+
 # Implementation Idea Outline
 
 - SystemT (need frontend)

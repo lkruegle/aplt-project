@@ -2,6 +2,7 @@ module Types (
   module Types,
   Ident(..)
 ) where
+
 import Kx.Abs(Ident(..))
 
 data Typ

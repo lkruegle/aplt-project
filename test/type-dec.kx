@@ -1,0 +1,3 @@
+dec Fn : ℕ -> ℕ in
+let f : Fn = (λx : ℕ . Succ x) in
+(λy : Fn . y Zero) f
