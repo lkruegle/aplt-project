@@ -6,7 +6,7 @@ import Types
 --
 -- This type can be used by each pass to manage type and term
 -- variable binding.
-data Context a = Context { boundTyps :: [a], boundTerms :: [a] }
+data Context a = Context {boundTyps :: [a], boundTerms :: [a]}
 
 -- | Empty context constructor
 emptyContext :: Context a
@@ -14,11 +14,11 @@ emptyContext = Context [] []
 
 -- | Bind a term in the given context
 bindTerm :: a -> Context a -> Context a
-bindTerm x c = c { boundTerms = x : boundTerms c }
+bindTerm x c = c {boundTerms = x : boundTerms c}
 
 -- | Bind a typ in the given context
 bindTyp :: a -> Context a -> Context a
-bindTyp t c = c { boundTyps = t : boundTyps c }
+bindTyp t c = c {boundTyps = t : boundTyps c}
 
 -- | Lookup the given term's index in the current context
 lookupTerm' :: Int -> Context a -> Maybe a
@@ -31,7 +31,7 @@ lookupTyp' = lookupC boundTyps
 -- | Generic context lookup
 lookupC :: (Context a -> [a]) -> Int -> Context a -> Maybe a
 lookupC f i c = case drop i (f c) of
-  (t:_) -> Just t
+  (t : _) -> Just t
   [] -> Nothing
 
 -- | Type variable shifting for managing de bruijn indices
@@ -67,14 +67,14 @@ shiftExp :: Int -> Exp -> Exp
 shiftExp c (EVar i n)
   | i >= c = EVar (i + 1) n
   | otherwise = EVar i n
-shiftExp c (EFLam t e) = EFLam t $ shiftExp (c + 1) e
+shiftExp c (EFLam x t e) = EFLam x t $ shiftExp (c + 1) e
 shiftExp c (EFApp f a) = EFApp (shiftExp c f) (shiftExp c a)
 shiftExp c (ETLam e) = ETLam $ shiftExp c e
 shiftExp c (ETApp e t) = ETApp (shiftExp c e) t
 shiftExp c (ESucc e) = ESucc (shiftExp c e)
 shiftExp c (ETupl es) = ETupl (map (shiftExp c) es)
 shiftExp c (EProj e i) = EProj (shiftExp c e) i
-shiftExp c (ECase e es) = ECase (shiftExp c e) (map (shiftExp (c+1)) es)
+shiftExp c (ECase e es) = ECase (shiftExp c e) (map (shiftExp (c + 1)) es)
 shiftExp c (EInj i e) = EInj i (shiftExp c e)
 shiftExp _ e = e
 
@@ -85,26 +85,26 @@ shiftExp _ e = e
 substExp :: Exp -> Exp -> Exp
 substExp = sExp 0
   where
-    -- | Do substitution while tracking the current depth at which substitution
+    -- \| Do substitution while tracking the current depth at which substitution
     -- is happening. If a lambda occurs, shift all existing indices up by 1.
     sExp d e v@(EVar i n)
       -- Shift the variables in e up by d to keep them valid
       | i == d = shiftExpN d 0 e
       | i > d = EVar (i - 1) n
       | otherwise = v
-    sExp d e (EFLam t body) = EFLam t $ sExp (d + 1) (shiftExp 0 e) body
+    sExp d e (EFLam x t body) = EFLam x t $ sExp (d + 1) (shiftExp 0 e) body
     sExp d e (EFApp fun arg) = EFApp (sExp d e fun) (sExp d e arg)
     sExp d e (ETLam body) = ETLam $ sExp (d + 1) (shiftExp 0 e) body
     sExp d e (ETApp body t) = ETApp (sExp d e body) t
     sExp d e (ESucc n) = ESucc (sExp d e n)
     sExp d e (ETupl es) = ETupl (map (sExp d e) es)
     sExp d e (EProj e' i) = EProj (sExp d e e') i
-    sExp d e (ECase e' es) = ECase (sExp d e e') (map (sExp (d+1) (shiftExp 0 e)) es)
+    sExp d e (ECase e' es) = ECase (sExp d e e') (map (sExp (d + 1) (shiftExp 0 e)) es)
     sExp d e (EInj i e') = EInj i (sExp d e e')
     sExp _ _ e' = e'
-    -- | Shift all variables in e with indices above c by n
+    -- \| Shift all variables in e with indices above c by n
     shiftExpN 0 _ e = e
-    shiftExpN n c e = shiftExpN (n-1) c (shiftExp c e)
+    shiftExpN n c e = shiftExpN (n - 1) c (shiftExp c e)
 
 -- | Perform type substitution across the given expression
 --
@@ -112,7 +112,7 @@ substExp = sExp 0
 -- with the given type managing type binding and shifting.
 substTypInExp :: Typ -> Exp -> Exp
 substTypInExp t (ETLam body) = ETLam $ substTypInExp (shiftTyp 0 t) body
-substTypInExp t (EFLam tau body) = EFLam (substTyp t tau) (substTypInExp t body)
+substTypInExp t (EFLam x tau body) = EFLam x (substTyp t tau) (substTypInExp t body)
 substTypInExp t (EFApp fun arg) = EFApp (substTypInExp t fun) (substTypInExp t arg)
 substTypInExp t (ETApp e tau) = ETApp (substTypInExp t e) (substTyp t tau)
 substTypInExp t (ETupl es) = ETupl (map (substTypInExp t) es)

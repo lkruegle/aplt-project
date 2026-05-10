@@ -21,9 +21,6 @@ step (App fun arg) = Right $ case fun of
     Left (VLam st body') -> App (Lam st body') arg
   (Var x) -> absurdVar x
 
-absurdVar :: (τ ∈ '[]) -> a
-absurdVar = \case
-
 subst :: γ ⊢ τ' -> (τ' : γ) ⊢ τ -> γ ⊢ τ
 subst e' = substAll $ \case
   Here -> e'

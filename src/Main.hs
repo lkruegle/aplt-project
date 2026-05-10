@@ -1,23 +1,20 @@
-import System.Environment (getArgs)
-import System.Exit        (exitFailure)
-
-import Kx.Par            (pExp, myLexer)
-import Kx.Abs
-import Kx.Print          (printTree)
-
-import TypeChecker
-import Evaluator
 import Desugar
+import Evaluator
+import Kx.Abs
+import Kx.Par (myLexer, pExp)
+import Kx.Print (printTree)
+import System.Environment (getArgs)
+import System.Exit (exitFailure)
+import TypeChecker
 
 -- | Parse, type check, and interpret a program given by the @String@.
-
 main :: IO ()
 main = readSrc >>= parse >>= runPipeline
 
 parse :: String -> IO Exp
 parse s = do
   case pExp (myLexer s) of
-    Left err  -> do
+    Left err -> do
       putStrLn "SYNTAX ERROR"
       putStrLn err
       exitFailure
@@ -38,6 +35,6 @@ readSrc :: IO String
 readSrc = do
   getArgs >>= \case
     [file] -> readFile file
-    _      -> do
+    _ -> do
       putStrLn "Usage: line <SourceFile>"
       exitFailure
