@@ -2,7 +2,7 @@ import System.Environment (getArgs)
 import System.Exit        (exitFailure)
 
 import Kx.Par            (pExp, myLexer)
-import Kx.Abs            
+import Kx.Abs
 import Kx.Print          (printTree)
 
 import TypeChecker
@@ -30,9 +30,8 @@ runPipeline e = do
   print e'
   case typecheck e' of
     Left err -> putStrLn err
-    Right typed -> do
-      print typed
-      print . evaluate $ e'
+    Right (Inferred typed) -> do
+      print . evaluate $ typed
 
 -- | Main: read file passed by only command line argument and call 'check'.
 readSrc :: IO String

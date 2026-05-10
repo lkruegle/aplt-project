@@ -7,6 +7,7 @@ import qualified Kx.Abs as A
 import Types
 import BookKeeping
 import Data.List (elemIndex)
+-- TODO: Remove the need for
 
 -- | Entrypoint to the desugaring step
 --

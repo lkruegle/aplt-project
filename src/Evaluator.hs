@@ -1,61 +1,32 @@
 module Evaluator where
 
 import Types
-import BookKeeping
 
 -- | Evaluator entrypoint, convert an expression to a Value
-evaluate :: Exp -> Val
-evaluate e = case toVal e of
-  Just val -> val
-  Nothing -> evaluate . step $ e
+evaluate :: '[] ⊢ τ -> Val τ
+evaluate term = case step term of
+  Right term' -> evaluate term'
+  Left val -> val
 
--- | Check if an expression is a Value.
-toVal :: Exp -> Maybe Val
--- 16.3a
-toVal (EFLam t e) = Just $ VLam t e
--- 16.3b
-toVal (ETLam e) = Just $ VTLam e
--- 9.2a
-toVal e@EZero = Just $ VNat (toInt e)
--- 9.2b
-toVal e@(ESucc _) = Just $ VNat (toInt e)
--- 10.4a --special case of rule that are technically eager
-toVal (ETupl es) = Just $ VProd es
+-- | Perform the next reduction of the given term, if one exists
+step :: '[] ⊢ τ -> Either (Val τ) ('[] ⊢ τ)
+step (App fun arg) = Right $ case fun of
+  (Lam _ body) -> subst arg body
+step Zero = Left $ VNat Zero
+step (Succ e) = Left $ VNat (Succ e)
+step (Lam arg body) = Left $ VLam arg body
+step (Var x) = case x of {} -- Impossible at type level, x cannot be a member of '[]
 
-toVal (EInj i e) = Just $ VSum i e
+subst :: γ ⊢ τ' -> (τ' : γ) ⊢ τ -> γ ⊢ τ
+subst e' = substAll $ \case
+  Here -> e'
+  There x -> Var x
 
-toVal _ = Nothing
+type Subst γ γ₀ = forall τ. τ ∈ γ₀ -> γ ⊢ τ
 
-toInt :: Exp -> Int
-toInt EZero = 0
--- ESucc must evaluate e here to handle lazy dynamics
-toInt (ESucc e) = case evaluate e of
-  VNat n -> 1 + n
-  v -> error $ "Cannot convert value " <> show v <> " to Int."
-toInt e = error $ "Cannot convert " <> show e <> " to Int."
-
--- | Implement the step-wise evaluation of an expression
---
--- Uses a Lazy evaluation strategy
-step :: Exp -> Exp
--- 16.3c
-step (EFApp (EFLam _ body) arg) = substExp arg body
--- 16.3d
-step (EFApp e arg) = EFApp (step e) arg
--- 16.3f
-step (ETApp (ETLam body) t) = substTypInExp t body
--- 16.3g
-step (ETApp e t) = ETApp (step e) t
---10.4c and 10.4d
-step (EProj e i) = case e of
-  ETupl es -> es !! i
-  _ -> EProj (step e) i
-
-step (ECase e es) = case e of
-  EInj i e' -> substExp e' (es !! i)
-  _ -> ECase (step e) es
-
--- dynamics of sums and products
-
-step e =
-  error $ "Given expression " <> show e <> " has no valid step-wise dynamics."
+substAll :: Subst γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
+substAll σ (Var x) = σ x
+substAll _ Zero = Zero
+substAll σ (Succ e) = Succ (substAll σ e)
+substAll σ (App f a) = App (substAll σ f) (substAll σ a)
+-- substAll σ (Lam τ e) = Lam τ (subst (lift σ) e)
