@@ -89,7 +89,7 @@ natToInt (S n) = 1 + natToInt n
 
 data Val (τ :: Typ) where
   VNat :: γ ⊢ 'TNat -> Val 'TNat
-  VLam :: STyp τ₁ -> (τ₁ : γ) ⊢ τ₂ -> Val (TArr τ₁ τ₂)
+  VLam :: STyp τ₁ -> (τ₁ : '[]) ⊢ τ₂ -> Val (TArr τ₁ τ₂)
   -- | VProd [Exp]
   -- | VSum Int Exp
   -- | VLam Typ Exp

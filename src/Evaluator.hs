@@ -10,12 +10,19 @@ evaluate term = case step term of
 
 -- | Perform the next reduction of the given term, if one exists
 step :: '[] ⊢ τ -> Either (Val τ) ('[] ⊢ τ)
-step (App fun arg) = Right $ case fun of
-  (Lam _ body) -> subst arg body
+step (Var x) = absurdVar x
 step Zero = Left $ VNat Zero
 step (Succ e) = Left $ VNat (Succ e)
 step (Lam arg body) = Left $ VLam arg body
-step (Var x) = case x of {} -- Impossible at type level, x cannot be a member of '[]
+step (App fun arg) = Right $ case fun of
+  (Lam _ body) -> subst arg body
+  app@(App _ _) -> case step app of
+    Right fun' -> App fun' arg
+    Left (VLam st body') -> App (Lam st body') arg
+  (Var x) -> absurdVar x
+
+absurdVar :: (τ ∈ '[]) -> a
+absurdVar = \case
 
 subst :: γ ⊢ τ' -> (τ' : γ) ⊢ τ -> γ ⊢ τ
 subst e' = substAll $ \case
@@ -24,9 +31,29 @@ subst e' = substAll $ \case
 
 type Subst γ γ₀ = forall τ. τ ∈ γ₀ -> γ ⊢ τ
 
+type Renaming γ γ₀ = forall τ. τ ∈ γ₀ -> τ ∈ γ
+
+lift' :: Renaming γ γ₀ -> Renaming (τ ': γ) (τ ': γ₀)
+lift' _ Here = Here
+lift' r (There x) = There (r x)
+
+rename :: Renaming γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
+rename r (Var x) = Var (r x)
+rename _ Zero = Zero
+rename r (Succ e) = Succ (rename r e)
+rename r (App e1 e2) = App (rename r e1) (rename r e2)
+rename r (Lam s e) = Lam s (rename (lift' r) e)
+
+weaken :: γ ⊢ τ -> (τ' : γ) ⊢ τ
+weaken = rename There
+
+lift :: Subst γ γ₀ -> Subst (τ ': γ) (τ ': γ₀)
+lift _ Here = Var Here
+lift σ (There x) = weaken (σ x)
+
 substAll :: Subst γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
 substAll σ (Var x) = σ x
 substAll _ Zero = Zero
 substAll σ (Succ e) = Succ (substAll σ e)
 substAll σ (App f a) = App (substAll σ f) (substAll σ a)
--- substAll σ (Lam τ e) = Lam τ (subst (lift σ) e)
+substAll σ (Lam τ e) = Lam τ (substAll (lift σ) e)
