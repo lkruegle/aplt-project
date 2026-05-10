@@ -70,7 +70,8 @@ data Exp
   | ESucc Exp
   | EFLam Typ Exp
   | EFApp Exp Exp
-  | EVar Int
+  -- TODO: Remove the Int, we don't need it anymore
+  | EVar Int Ident
   | EFree Ident
   | ETupl [Exp]
   | EProj Exp Int

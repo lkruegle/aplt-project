@@ -64,9 +64,9 @@ substTyp _ t = t
 -- Shifts all indices equal to or larger than the given cutoff
 -- up by 1.
 shiftExp :: Int -> Exp -> Exp
-shiftExp c (EVar i)
-  | i >= c = EVar $ i + 1
-  | otherwise = EVar i
+shiftExp c (EVar i n)
+  | i >= c = EVar (i + 1) n
+  | otherwise = EVar i n
 shiftExp c (EFLam t e) = EFLam t $ shiftExp (c + 1) e
 shiftExp c (EFApp f a) = EFApp (shiftExp c f) (shiftExp c a)
 shiftExp c (ETLam e) = ETLam $ shiftExp c e
@@ -87,10 +87,10 @@ substExp = sExp 0
   where
     -- | Do substitution while tracking the current depth at which substitution
     -- is happening. If a lambda occurs, shift all existing indices up by 1.
-    sExp d e v@(EVar i)
+    sExp d e v@(EVar i n)
       -- Shift the variables in e up by d to keep them valid
       | i == d = shiftExpN d 0 e
-      | i > d = EVar (i - 1)
+      | i > d = EVar (i - 1) n
       | otherwise = v
     sExp d e (EFLam t body) = EFLam t $ sExp (d + 1) (shiftExp 0 e) body
     sExp d e (EFApp fun arg) = EFApp (sExp d e fun) (sExp d e arg)
