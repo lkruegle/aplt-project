@@ -1,6 +1,5 @@
 module TypeChecker (typecheck, Inferred (..)) where
 
-import Data.Type.Equality
 import Types
 import Prelude hiding (exp)
 
@@ -88,12 +87,3 @@ extractSTyp ctx (Lam atyp rterm) =
    in SArr atyp rtyp
 extractSTyp ctx (App fterm _) = case extractSTyp ctx fterm of
   SArr _ rtyp -> rtyp
-
--- | Check equality between two STyps
-typEq :: STyp τ₁ -> STyp τ₂ -> Maybe (τ₁ :~: τ₂)
-typEq SNat SNat = Just Refl
-typEq (SArr a b) (SArr c d) = do
-  Refl <- typEq a c
-  Refl <- typEq b d
-  return Refl
-typEq _ _ = Nothing

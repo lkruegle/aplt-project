@@ -1,8 +1,11 @@
 module Types
   ( module Types,
     Ident (..),
+    module Data.Type.Equality
   )
 where
+
+import Data.Type.Equality
 
 import Kx.Abs (Ident (..))
 
@@ -54,6 +57,10 @@ data (τ :: Typ) ∈ (γ :: [Typ]) where
   Here :: τ ∈ (τ : γ)
   There :: τ ∈ γ -> τ ∈ (τ' : γ)
 
+-- | Absurdity - use when a case is impossible
+absurdVar :: (τ ∈ '[]) -> a
+absurdVar = \case {}
+
 -- | Singleton type
 data STyp (τ :: Typ) where
   SNat :: STyp 'TNat
@@ -76,9 +83,14 @@ instance Show (STyp τ) where
   show SNat = show TNat
   show (SArr a b) = "(" ++ show a ++ " -> " ++ show b ++ ")"
 
-
-absurdVar :: (τ ∈ '[]) -> a
-absurdVar = \case {}
+-- | Check equality between two STyps
+typEq :: STyp τ₁ -> STyp τ₂ -> Maybe (τ₁ :~: τ₂)
+typEq SNat SNat = Just Refl
+typEq (SArr a b) (SArr c d) = do
+  Refl <- typEq a c
+  Refl <- typEq b d
+  return Refl
+typEq _ _ = Nothing
 
 -- | START: Value types, produced by the evaluator
 
