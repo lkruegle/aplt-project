@@ -1,116 +1,89 @@
-module TypeChecker (typecheck) where
+module TypeChecker (typecheck, Inferred (..)) where
 
 import Types
-import BookKeeping hiding (bindTyp)
+import Prelude hiding (exp)
 
 -- | Entrypoint for the typechecker
 --
 -- Given a desugared expression, infer the type the expression will evaluate
 -- to.
-typecheck :: Exp -> Either String Typ
-typecheck = infer emptyContext
+typecheck :: Exp -> M (Inferred '[])
+typecheck = infer EmptyC
 
--- | The Context type for the type checker.
---
--- Binds type variables and terms to types.
-type Ctx = Context Typ
-
--- | Bind a type variable in the context.
---
--- This function binds a new "current" type variable and shifts all existing
--- type variables up by 1 in response.
-bindTyp :: Ctx -> Ctx
-bindTyp c = c { boundTyps = TVar 0 : map (shiftTyp 0) (boundTyps c) }
-
--- | Looks up the type of the type variable at the given de bruijn index.
-lookupTyp :: Int -> Ctx -> Either String Typ
-lookupTyp i c = case lookupTyp' i c of
-  Just t -> Right t
-  Nothing -> Left "Out of scope type"
-
--- | Looks up the type of the term variable at the given de bruijn index.
-lookupTerm :: Int -> Ctx -> Either String Typ
-lookupTerm i c = case lookupTerm' i c of
-  Just t -> Right t
-  Nothing -> Left "Out of scope term"
-
-guard :: String -> Bool -> Either String ()
-guard s b = if b then pure () else Left s
-
-check :: Ctx -> Typ -> Exp -> Either String ()
-check c ty (EInj i e) = case ty of
-    TSum taus | i < 0 -> Left $ "Injection index must be greater then zero"
-              | i < length taus -> check c (taus !! i) e
-              | otherwise -> Left $ "Injection index " <> show i <> " is out of bound for: " <> show ty
-    _ -> Left "Inferred type does not meet expected type." 
-check c ty (ECase e es) = do
-  ty' <- infer c e
-  case ty' of
-    TSum tys | length tys == length es -> 
-               let go [] [] = pure ()
-                   go (e:es) (ty':tys) = do
-                    check (bindTerm ty' c) ty e
-                    go es tys
-                in go es tys
-             | otherwise -> Left "Number of cases does not match sum type"
-    _ -> Left "Case distinction on non sum-type."
-check c (TArr t1 t2) (EFLam t1' e) = do
-  guard "Function takes wrong argument" (t1' == t1)
-  check (bindTerm t1 c) t2 e
-check c ty exp = do
-  ty' <- infer c exp
-  guard ("Inferred type '" <> show ty' <> "' of exp '" <> show exp <> "' does not meet expected type '" <> show ty <> "'.") (ty == ty')
-
--- | Infer the type of the given expression in the given context.
---
--- If the expression and context are well formed, this method will evaluate to
--- the type of the expression.
-infer :: Ctx -> Exp -> Either String Typ
-infer c (EVar i) = lookupTerm i c
-infer _ (EFree (Ident x)) = Left $ "Free Variable " <> x
-infer c (EFLam tau1 e) = do
-  wellFormed c tau1
-  tau2 <- infer (bindTerm tau1 c) e
-  Right (TArr tau1 tau2)
-infer c (EFApp f e) = do
-  tf <- infer c f
-  case tf of
-    TArr t1 t2 -> do
-      check c t1 e
-      pure t2
-    _ -> Left "Applied argument to non-lambda"
-infer c (ETLam e) = do
-  tau <- infer (bindTyp c) e
-  Right $ TAll tau
-infer c (ETApp e tau) = do
-  wellFormed c tau
-  tau' <- infer c e
-  case tau' of
-    TAll body -> Right $ substTyp tau body
-    _ -> Left $ "Type application failed, " <> show tau <> " cannot be substituted in " <> show tau'
-infer _ EZero = Right TNat
+-- | Construct a proof that the given expression is a well typed term in the
+-- given context if such a term can be constructed.
+infer :: Ctx γ -> Exp -> M (Inferred γ)
+infer _ EZero = Right $ Inferred Zero
 infer c (ESucc e) = do
-  tau <- infer c e
-  case tau of
-    TNat -> Right TNat
-    _ -> Left $ "Succ applied to non-nat: " <> show tau
-infer c (ETupl es) = do
-  taus <- mapM (infer c) es
-  Right (TProd taus)
-infer c (EProj e i) = do
-  tau <- infer c e
-  case tau of
-    TProd taus | i < 0 -> Left $ "Projection index must be greater then zero"
-               | i < length taus -> Right (taus !! i)
-               | otherwise -> Left $ "Projection index " <> show i <> " is out of bound for: " <> show tau
-    _ -> Left $ "Projection applied to non-product: " <> show tau
-infer c e = Left $ "Cannot infer type of " <> show e
+  term <- check c SNat e
+  Right $ Inferred (Succ term)
+infer c (EVar _ i@(Ident n)) = case lookupCtx i c of
+  Nothing -> Left $ "No variable bound with name " ++ n
+  Just (Found _ x) -> Right $ Inferred (Var x)
+infer c (EFLam x t body) = case toSTyp t of
+  SomeSTyp atyp -> do
+    Inferred fterm <- infer (ConsC x atyp c) body
+    Right $ Inferred (Lam atyp fterm)
+infer c (EFApp func arg) = do
+  Inferred fterm <- infer c func
+  case extractSTyp c fterm of
+    SArr atyp _ -> do
+      case check c atyp arg of
+        Right aterm -> do
+          Right $ Inferred (App fterm aterm)
+        Left err -> Left $ "Function applied to incorrect argument type. " ++ err
+    _ -> Left "Function application applied to non-function term"
+infer _ _ = undefined
 
--- | Check that the given type is well-formed.
-wellFormed :: Ctx -> Typ -> Either String ()
-wellFormed c (TVar i) = lookupTyp i c >> Right ()
-wellFormed c (TArr t1 t2) = wellFormed c t1 >> wellFormed c t2
-wellFormed c (TAll t) = wellFormed (bindTyp c) t
-wellFormed c (TProd taus) = mapM_ (wellFormed c) taus
-wellFormed c (TSum taus) = mapM_ (wellFormed c) taus
-wellFormed _ _ = Right ()
+-- | Check that the given expression has some expected type in the given context.
+check :: Ctx γ -> STyp τ -> Exp -> M (γ ⊢ τ)
+check c typ exp = case infer c exp of
+  Left err -> Left err
+  Right (Inferred term) ->
+    let typ' = extractSTyp c term
+     in case typEq typ typ' of
+          Nothing -> Left $ unwords ["Expected:", show typ, "Got:", show typ']
+          Just Refl -> Right term
+
+-- START: Types and helper functions for typechecking
+
+-- | TypeChecker Monad
+type M a = Either String a
+
+-- | Inferred type wrapper
+-- Required to wrap τ so that it can be unpacked at runtime.
+data Inferred (γ :: [Typ]) where
+  Inferred :: γ ⊢ τ -> Inferred γ
+
+-- | The Context type for the typechecker.
+data Ctx (γ :: [Typ]) where
+  EmptyC :: Ctx '[]
+  ConsC :: Ident -> STyp τ -> Ctx γ -> Ctx (τ : γ)
+
+-- | Runtime wrapper for results of looking up a variable in the context.
+data Found (γ :: [Typ]) where
+  Found :: STyp τ -> τ ∈ γ -> Found γ
+
+-- | Lookup the type of the given identifier in the context.
+lookupCtx :: Ident -> Ctx γ -> Maybe (Found γ)
+lookupCtx _ EmptyC = Nothing
+lookupCtx n (ConsC n' typ ctx)
+  | n == n' = Just $ Found typ Here
+  | otherwise = case lookupCtx n ctx of
+      Nothing -> Nothing
+      (Just (Found typ' idx)) -> Just (Found typ' (There idx))
+
+-- | Given a context and a term in that context, produce the Singleton type
+-- for the term.
+extractSTyp :: Ctx γ -> γ ⊢ τ -> STyp τ
+extractSTyp (ConsC _ typ ctx) (Var idx) = case idx of
+  Here -> typ
+  There idx' -> extractSTyp ctx (Var idx')
+extractSTyp EmptyC (Var x) = absurdVar x
+extractSTyp _ Zero = SNat
+extractSTyp _ (Succ _) = SNat
+extractSTyp ctx (Lam atyp rterm) =
+  let rtyp = extractSTyp (ConsC (Ident "") atyp ctx) rterm
+   in SArr atyp rtyp
+extractSTyp ctx (App fterm _) = case extractSTyp ctx fterm of
+  SArr _ rtyp -> rtyp
