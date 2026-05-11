@@ -3,12 +3,9 @@ module Desugar
   )
 where
 
-import BookKeeping
 import Data.List (elemIndex)
 import qualified Kx.Abs as A
 import Types
-
--- TODO: Remove the need for
 
 -- | Entrypoint to the desugaring step
 --
@@ -16,9 +13,6 @@ import Types
 -- language, desugaring any syntax-only features.
 desugar :: A.Exp -> Exp
 desugar = desugarExp emptyContext
-
--- | Desugaring context used for managing variable binding
-type SugarCtx = Context Ident
 
 -- | Desugar a type
 desugarTyp :: SugarCtx -> A.Typ -> Typ
@@ -60,3 +54,26 @@ desugarExp _ _ = undefined
 --   where
 --     go (A.Match i e) = desugarExp (bindTerm i s) e
 -- desugarExp s (A.EInj i e) = EInj (fromIntegral i) (desugarExp s e)
+
+-- START: Desugaring Utilities
+
+-- | Desugaring context used for managing variable binding
+type SugarCtx = Context Ident
+
+-- | Generic Context type
+--
+-- This type can be used by each pass to manage type and term
+-- variable binding.
+data Context a = Context {boundTyps :: [a], boundTerms :: [a]}
+
+-- | Empty context constructor
+emptyContext :: Context a
+emptyContext = Context [] []
+
+-- | Bind a term in the given context
+bindTerm :: a -> Context a -> Context a
+bindTerm x c = c {boundTerms = x : boundTerms c}
+
+-- | Bind a typ in the given context
+bindTyp :: a -> Context a -> Context a
+bindTyp t c = c {boundTyps = t : boundTyps c}
