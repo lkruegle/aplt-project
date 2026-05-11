@@ -42,11 +42,11 @@ data Exp
 
 -- | Well typed Term definitions
 data (γ :: [Typ]) ⊢ (τ :: Typ) where
-  Var :: τ ∈ γ -> γ ⊢ τ
   Zero :: γ ⊢ 'TNat
   Succ :: γ ⊢ TNat -> γ ⊢ TNat
   Lam :: STyp τ₁ -> (τ₁ : γ) ⊢ τ₂ -> γ ⊢ 'TArr τ₁ τ₂
   App :: γ ⊢ 'TArr τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
+  Var :: τ ∈ γ -> γ ⊢ τ
 
 instance Show (γ ⊢ τ) where
   show (Var x) = "(Var " <> show x <> ")"
