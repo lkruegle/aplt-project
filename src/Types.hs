@@ -122,10 +122,3 @@ data Val (τ :: Typ) where
 instance Show (Val τ) where
   show (VNat e) = "ℕ " <> show e
   show (VLam a b) = show $ Lam a b
-
-data ℕ = Z | S ℕ
-  deriving (Eq, Show)
-
-natToInt :: ℕ -> Int
-natToInt Z = 0
-natToInt (S n) = 1 + natToInt n
