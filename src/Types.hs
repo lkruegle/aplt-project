@@ -1,12 +1,11 @@
 module Types
   ( module Types,
     Ident (..),
-    module Data.Type.Equality
+    module Data.Type.Equality,
   )
 where
 
 import Data.Type.Equality
-
 import Kx.Abs (Ident (..))
 
 -- | START: Abstract Syntax
@@ -48,9 +47,10 @@ data (γ :: [Typ]) ⊢ (τ :: Typ) where
   Succ :: γ ⊢ TNat -> γ ⊢ TNat
   Lam :: STyp τ₁ -> (τ₁ : γ) ⊢ τ₂ -> γ ⊢ 'TArr τ₁ τ₂
   App :: γ ⊢ 'TArr τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
-  -- TODO: Define the rest of the terms
-  -- All :: ??
-  -- Free :: ??
+
+-- TODO: Define the rest of the terms
+-- All :: ??
+-- Free :: ??
 
 -- | Membership proofs
 data (τ :: Typ) ∈ (γ :: [Typ]) where
@@ -65,7 +65,8 @@ absurdVar = \case {}
 data STyp (τ :: Typ) where
   SNat :: STyp 'TNat
   SArr :: STyp τ₁ -> STyp τ₂ -> STyp ('TArr τ₁ τ₂)
-  -- TODO: Define the rest of the STyps
+
+-- TODO: Define the rest of the STyps
 
 -- | Type for producing STyps without a polymorphic param.
 -- Allows for runtime unpacking of types without compile-time checking
@@ -93,16 +94,15 @@ typEq (SArr a b) (SArr c d) = do
 typEq _ _ = Nothing
 
 -- | START: Value types, produced by the evaluator
-
 data Val (τ :: Typ) where
   VNat :: γ ⊢ 'TNat -> Val 'TNat
   VLam :: STyp τ₁ -> (τ₁ : '[]) ⊢ τ₂ -> Val (TArr τ₁ τ₂)
 
-  -- TODO: Implement these values
-  -- VProd [Exp]
-  -- VSum Int Exp
-  -- VLam Typ Exp
-  -- VTLam Exp
+-- TODO: Implement these values
+-- VProd [Exp]
+-- VSum Int Exp
+-- VLam Typ Exp
+-- VTLam Exp
 
 instance Show (Val τ) where
   show (VNat _) = "VNat"
