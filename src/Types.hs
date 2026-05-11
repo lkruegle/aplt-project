@@ -48,6 +48,13 @@ data (γ :: [Typ]) ⊢ (τ :: Typ) where
   Lam :: STyp τ₁ -> (τ₁ : γ) ⊢ τ₂ -> γ ⊢ 'TArr τ₁ τ₂
   App :: γ ⊢ 'TArr τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
 
+instance Show (γ ⊢ τ) where
+  show (Var x) = "(Var " <> show x <> ")"
+  show Zero = "Zero"
+  show (Succ e) = "(Succ " <> show e <> ")"
+  show (Lam t body) = "λx : " <> show t <> " . " <> show body
+  show (App f a) = "(" <> show f <> ")(" <> show a <> ")"
+
 -- TODO: Define the rest of the terms
 -- All :: ??
 -- Free :: ??
@@ -56,6 +63,14 @@ data (γ :: [Typ]) ⊢ (τ :: Typ) where
 data (τ :: Typ) ∈ (γ :: [Typ]) where
   Here :: τ ∈ (τ : γ)
   There :: τ ∈ γ -> τ ∈ (τ' : γ)
+
+instance Show (τ ∈ γ) where
+  show Here = "x"
+  show x = "x" <> show (depth x)
+
+depth :: forall τ γ. τ ∈ γ -> Int
+depth Here = 0
+depth (There x) = 1 + depth x
 
 -- | Absurdity - use when a case is impossible
 absurdVar :: (τ ∈ '[]) -> a
@@ -105,8 +120,8 @@ data Val (τ :: Typ) where
 -- VTLam Exp
 
 instance Show (Val τ) where
-  show (VNat _) = "VNat"
-  show (VLam _ _) = "VLam"
+  show (VNat e) = "ℕ " <> show e
+  show (VLam a b) = show $ Lam a b
 
 data ℕ = Z | S ℕ
   deriving (Eq, Show)
