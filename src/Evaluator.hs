@@ -21,6 +21,10 @@ step (App fun arg) = Right $ case fun of
     Left (VLam st body') -> App (Lam st body') arg
   (Var x) -> absurdVar x
 
+-- | START: Substitution Utilities
+
+-- | Perform a substitution, replacing the first bound variable with the given
+-- term of the same type.
 subst :: γ ⊢ τ' -> (τ' : γ) ⊢ τ -> γ ⊢ τ
 subst e' = substAll $ \case
   Here -> e'
@@ -28,29 +32,29 @@ subst e' = substAll $ \case
 
 type Subst γ γ₀ = forall τ. τ ∈ γ₀ -> γ ⊢ τ
 
-type Renaming γ γ₀ = forall τ. τ ∈ γ₀ -> τ ∈ γ
-
-lift' :: Renaming γ γ₀ -> Renaming (τ ': γ) (τ ': γ₀)
-lift' _ Here = Here
-lift' r (There x) = There (r x)
-
-rename :: Renaming γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
-rename r (Var x) = Var (r x)
-rename _ Zero = Zero
-rename r (Succ e) = Succ (rename r e)
-rename r (App e1 e2) = App (rename r e1) (rename r e2)
-rename r (Lam s e) = Lam s (rename (lift' r) e)
-
-weaken :: γ ⊢ τ -> (τ' : γ) ⊢ τ
-weaken = rename There
-
-lift :: Subst γ γ₀ -> Subst (τ ': γ) (τ ': γ₀)
-lift _ Here = Var Here
-lift σ (There x) = weaken (σ x)
+liftS :: Subst γ γ₀ -> Subst (τ ': γ) (τ ': γ₀)
+liftS _ Here = Var Here
+liftS σ (There x) = weaken (σ x)
 
 substAll :: Subst γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
 substAll σ (Var x) = σ x
 substAll _ Zero = Zero
 substAll σ (Succ e) = Succ (substAll σ e)
 substAll σ (App f a) = App (substAll σ f) (substAll σ a)
-substAll σ (Lam τ e) = Lam τ (substAll (lift σ) e)
+substAll σ (Lam τ e) = Lam τ (substAll (liftS σ) e)
+
+type Renaming γ γ₀ = forall τ. τ ∈ γ₀ -> τ ∈ γ
+
+weaken :: γ ⊢ τ -> (τ' : γ) ⊢ τ
+weaken = rename There
+
+liftR :: Renaming γ γ₀ -> Renaming (τ ': γ) (τ ': γ₀)
+liftR _ Here = Here
+liftR r (There x) = There (r x)
+
+rename :: Renaming γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
+rename r (Var x) = Var (r x)
+rename _ Zero = Zero
+rename r (Succ e) = Succ (rename r e)
+rename r (App e1 e2) = App (rename r e1) (rename r e2)
+rename r (Lam s e) = Lam s (rename (liftR r) e)
