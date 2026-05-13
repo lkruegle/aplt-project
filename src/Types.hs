@@ -48,6 +48,7 @@ data (γ :: [Typ]) ⊢ (τ :: Typ) where
   App :: γ ⊢ 'TArr τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
   Var :: τ ∈ γ -> γ ⊢ τ
 
+
 instance Show (γ ⊢ τ) where
   show (Var x) = "(Var " <> show x <> ")"
   show Zero = "Zero"
@@ -60,7 +61,7 @@ instance Show (γ ⊢ τ) where
 -- Free :: ??
 
 -- | Membership proofs
-data (τ :: Typ) ∈ (γ :: [Typ]) where
+data (τ :: a) ∈ (γ :: [a]) where
   Here :: τ ∈ (τ : γ)
   There :: τ ∈ γ -> τ ∈ (τ' : γ)
 
