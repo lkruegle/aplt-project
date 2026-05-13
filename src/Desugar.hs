@@ -1,12 +1,12 @@
-module Desugar (
-  desugar
-) where
+module Desugar
+  ( desugar,
+  )
+where
 
-import qualified Kx.Abs as A
-
-import Types
 import BookKeeping
 import Data.List (elemIndex)
+import qualified Kx.Abs as A
+import Types
 
 -- | Entrypoint to the desugaring step
 --
@@ -24,7 +24,7 @@ desugarTyp s (A.TVar t) = case elemIndex t (boundTyps s) of
   Just i -> TVar i
   Nothing -> TFree t
 desugarTyp s (A.TArr tau tau') = TArr (desugarTyp s tau) (desugarTyp s tau')
-desugarTyp s (A.TAll t tau)  = TAll (desugarTyp (bindTyp t s) tau)
+desugarTyp s (A.TAll t tau) = TAll (desugarTyp (bindTyp t s) tau)
 desugarTyp _ A.TNat = TNat
 desugarTyp s (A.TProd taus) = TProd (map (desugarTyp s) taus)
 desugarTyp s (A.TSum taus) = TSum (map (desugarTyp s) taus)
@@ -38,7 +38,7 @@ desugarExp s (A.EFApp f e) =
   EFApp (desugarExp s f) (desugarExp s e)
 desugarExp s (A.EFLam x tau e) =
   let tau' = desugarTyp s tau
-  in EFLam tau' (desugarExp (bindTerm x s) e)
+   in EFLam tau' (desugarExp (bindTerm x s) e)
 desugarExp s (A.ETApp e tau) =
   ETApp (desugarExp s e) (desugarTyp s tau)
 desugarExp s (A.ETLam t e) =

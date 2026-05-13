@@ -1,9 +1,10 @@
-module Types (
-  module Types,
-  Ident(..)
-) where
+module Types
+  ( module Types,
+    Ident (..),
+  )
+where
 
-import Kx.Abs(Ident(..))
+import Kx.Abs (Ident (..))
 
 data Typ
   = TNat
@@ -23,7 +24,7 @@ data Exp
   | ETupl [Exp]
   | EProj Exp Int
   | ECase Exp [Exp]
-  | EInj  Int Exp
+  | EInj Int Exp
   | EFLam Typ Exp
   | EFApp Exp Exp
   | ETLam Exp

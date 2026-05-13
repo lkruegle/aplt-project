@@ -1,7 +1,7 @@
 module TypeChecker (typecheck) where
 
-import Types
 import BookKeeping hiding (bindTyp)
+import Types
 
 -- | Entrypoint for the typechecker
 --
@@ -20,7 +20,7 @@ type Ctx = Context Typ
 -- This function binds a new "current" type variable and shifts all existing
 -- type variables up by 1 in response.
 bindTyp :: Ctx -> Ctx
-bindTyp c = c { boundTyps = TVar 0 : map (shiftTyp 0) (boundTyps c) }
+bindTyp c = c {boundTyps = TVar 0 : map (shiftTyp 0) (boundTyps c)}
 
 -- | Looks up the type of the type variable at the given de bruijn index.
 lookupTyp :: Int -> Ctx -> Either String Typ
@@ -39,20 +39,22 @@ guard s b = if b then pure () else Left s
 
 check :: Ctx -> Typ -> Exp -> Either String ()
 check c ty (EInj i e) = case ty of
-    TSum taus | i < 0 -> Left $ "Injection index must be greater then zero"
-              | i < length taus -> check c (taus !! i) e
-              | otherwise -> Left $ "Injection index " <> show i <> " is out of bound for: " <> show ty
-    _ -> Left "Inferred type does not meet expected type." 
+  TSum taus
+    | i < 0 -> Left $ "Injection index must be greater then zero"
+    | i < length taus -> check c (taus !! i) e
+    | otherwise -> Left $ "Injection index " <> show i <> " is out of bound for: " <> show ty
+  _ -> Left "Inferred type does not meet expected type."
 check c ty (ECase e es) = do
   ty' <- infer c e
   case ty' of
-    TSum tys | length tys == length es -> 
-               let go [] [] = pure ()
-                   go (e:es) (ty':tys) = do
-                    check (bindTerm ty' c) ty e
-                    go es tys
-                in go es tys
-             | otherwise -> Left "Number of cases does not match sum type"
+    TSum tys
+      | length tys == length es ->
+          let go [] [] = pure ()
+              go (e : es) (ty' : tys) = do
+                check (bindTerm ty' c) ty e
+                go es tys
+           in go es tys
+      | otherwise -> Left "Number of cases does not match sum type"
     _ -> Left "Case distinction on non sum-type."
 check c (TArr t1 t2) (EFLam t1' e) = do
   guard "Function takes wrong argument" (t1' == t1)
@@ -84,10 +86,14 @@ infer c (ETLam e) = do
   Right $ TAll tau
 infer c (ETApp e tau) = do
   wellFormed c tau
-  tau' <- infer c e
-  case tau' of
-    TAll body -> Right $ substTyp tau body
-    _ -> Left $ "Type application failed, " <> show tau <> " cannot be substituted in " <> show tau'
+  case e of
+    ETLam body ->
+      infer c (substTypInExp tau body)
+    _ -> do
+      tau' <- infer c e
+      case tau' of
+        TAll tBody -> Right (substTyp tau tBody)
+        _ -> Left "Invalid type application"
 infer _ EZero = Right TNat
 infer c (ESucc e) = do
   tau <- infer c e
@@ -100,9 +106,10 @@ infer c (ETupl es) = do
 infer c (EProj e i) = do
   tau <- infer c e
   case tau of
-    TProd taus | i < 0 -> Left $ "Projection index must be greater then zero"
-               | i < length taus -> Right (taus !! i)
-               | otherwise -> Left $ "Projection index " <> show i <> " is out of bound for: " <> show tau
+    TProd taus
+      | i < 0 -> Left $ "Projection index must be greater then zero"
+      | i < length taus -> Right (taus !! i)
+      | otherwise -> Left $ "Projection index " <> show i <> " is out of bound for: " <> show tau
     _ -> Left $ "Projection applied to non-product: " <> show tau
 infer c e = Left $ "Cannot infer type of " <> show e
 
