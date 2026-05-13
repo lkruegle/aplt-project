@@ -5,6 +5,7 @@ module Types
   )
 where
 
+import qualified Data.Kind as K
 import Data.Type.Equality
 import Kx.Abs (Ident (..))
 
@@ -40,15 +41,24 @@ data Exp
 
 -- | START: Typed syntax and proof types
 
--- | Well typed Term definitions
-data (γ :: [Typ]) ⊢ (τ :: Typ) where
-  Zero :: γ ⊢ 'TNat
-  Succ :: γ ⊢ TNat -> γ ⊢ TNat
-  Lam :: STyp τ₁ -> (τ₁ : γ) ⊢ τ₂ -> γ ⊢ 'TArr τ₁ τ₂
-  App :: γ ⊢ 'TArr τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
-  Var :: τ ∈ γ -> γ ⊢ τ
+data Kind where
+  KTyp :: Kind
+  KArr :: Kind -> Kind -> Kind
 
-instance Show (γ ⊢ τ) where
+data Type (κ :: [Kind]) where
+  Nat :: Type κ
+  Arr :: Type κ -> Type κ -> Type κ
+  -- VarType :: k ∈ κ -> Type κ
+
+-- | Well typed Term definitions
+data Term (κ :: [Kind]) (γ :: [Type κ]) (τ :: Type κ) where
+  Zero :: Term κ γ Nat
+  Succ :: Term κ γ Nat -> Term κ γ Nat
+  Lam :: SType τ₁ -> Term κ (τ₁ : γ) τ₂ -> Term κ γ (Arr τ₁ τ₂)
+  App :: Term κ γ (Arr τ₁ τ₂) -> Term κ γ τ₁ -> Term κ γ τ₂
+  Var :: τ ∈ γ -> Term κ γ τ
+
+instance Show (Term κ γ τ) where
   show (Var x) = "(Var " <> show x <> ")"
   show Zero = "Zero"
   show (Succ e) = "(Succ " <> show e <> ")"
@@ -60,7 +70,7 @@ instance Show (γ ⊢ τ) where
 -- Free :: ??
 
 -- | Membership proofs
-data (τ :: Typ) ∈ (γ :: [Typ]) where
+data (τ :: a) ∈ (γ :: [a]) where
   Here :: τ ∈ (τ : γ)
   There :: τ ∈ γ -> τ ∈ (τ' : γ)
 
@@ -77,30 +87,34 @@ absurdVar :: (τ ∈ '[]) -> a
 absurdVar = \case {}
 
 -- | Singleton type
-data STyp (τ :: Typ) where
-  SNat :: STyp 'TNat
-  SArr :: STyp τ₁ -> STyp τ₂ -> STyp ('TArr τ₁ τ₂)
+data SType :: forall κ. Type κ -> K.Type where
+  SNat :: SType 'Nat
+  SArr :: SType τ₁ -> SType τ₂ -> SType ('Arr τ₁ τ₂)
 
--- TODO: Define the rest of the STyps
+data SKind (k :: Kind) where
+  SKTyp :: SKind 'KTyp
+  SKArr :: SKind k₁ -> SKind k₂ -> SKind ('KArr k₁ k₂)
 
--- | Type for producing STyps without a polymorphic param.
+-- TODO: Define the rest of the STypes
+
+-- | Type for producing STypes without a polymorphic param.
 -- Allows for runtime unpacking of types without compile-time checking
-data SomeSTyp where
-  SomeSTyp :: STyp τ -> SomeSTyp
+data SomeSType (κ :: [Kind]) where
+  SomeSType :: SType (τ :: Type κ) -> SomeSType κ
 
--- | Wrap a Typ in SomeSTyp
-toSTyp :: Typ -> SomeSTyp
-toSTyp TNat = SomeSTyp SNat
-toSTyp (TArr a r) = case (toSTyp a, toSTyp r) of
-  (SomeSTyp sa, SomeSTyp sr) -> SomeSTyp $ SArr sa sr
-toSTyp _ = undefined
+-- | Wrap a Typ in SomeSType
+toSType :: Type κ -> SomeSType κ
+toSType Nat = SomeSType SNat
+toSType (Arr a r) = case (toSType a, toSType r) of
+  (SomeSType sa, SomeSType sr) -> SomeSType $ SArr sa sr
+toSType _ = undefined
 
-instance Show (STyp τ) where
+instance Show (SType τ) where
   show SNat = show TNat
   show (SArr a b) = "(" ++ show a ++ " -> " ++ show b ++ ")"
 
--- | Check equality between two STyps
-typEq :: STyp τ₁ -> STyp τ₂ -> Maybe (τ₁ :~: τ₂)
+-- | Check equality between two STypes
+typEq :: SType τ₁ -> SType τ₂ -> Maybe (τ₁ :~: τ₂)
 typEq SNat SNat = Just Refl
 typEq (SArr a b) (SArr c d) = do
   Refl <- typEq a c
@@ -109,9 +123,9 @@ typEq (SArr a b) (SArr c d) = do
 typEq _ _ = Nothing
 
 -- | START: Value types, produced by the evaluator
-data Val (τ :: Typ) where
-  VNat :: γ ⊢ 'TNat -> Val 'TNat
-  VLam :: STyp τ₁ -> (τ₁ : '[]) ⊢ τ₂ -> Val (TArr τ₁ τ₂)
+data Val (τ :: Type κ) where
+  VNat :: Term κ γ 'Nat -> Val 'Nat
+  VLam :: SType τ₁ -> Term κ (τ₁ : '[]) τ₂ -> Val (Arr τ₁ τ₂)
 
 -- TODO: Implement these values
 -- VProd [Exp]

@@ -20,13 +20,13 @@ infer c (ESucc e) = do
 infer c (EVar _ i@(Ident n)) = case lookupCtx i c of
   Nothing -> Left $ "No variable bound with name " ++ n
   Just (Found _ x) -> Right $ Inferred (Var x)
-infer c (EFLam x t body) = case toSTyp t of
-  SomeSTyp atyp -> do
+infer c (EFLam x t body) = case toSType t of
+  SomeSType atyp -> do
     Inferred fterm <- infer (ConsC x atyp c) body
     Right $ Inferred (Lam atyp fterm)
 infer c (EFApp func arg) = do
   Inferred fterm <- infer c func
-  case extractSTyp c fterm of
+  case extractSType c fterm of
     SArr atyp _ -> do
       case check c atyp arg of
         Right aterm -> do
@@ -36,11 +36,11 @@ infer c (EFApp func arg) = do
 infer _ _ = undefined
 
 -- | Check that the given expression has some expected type in the given context.
-check :: Ctx γ -> STyp τ -> Exp -> M (γ ⊢ τ)
+check :: Ctx κ γ -> SType τ -> Exp -> M (Term κ γ τ)
 check c typ exp = case infer c exp of
   Left err -> Left err
   Right (Inferred term) ->
-    let typ' = extractSTyp c term
+    let typ' = extractSType c term
      in case typEq typ typ' of
           Nothing -> Left $ unwords ["Expected:", show typ, "Got:", show typ']
           Just Refl -> Right term
@@ -52,20 +52,21 @@ type M a = Either String a
 
 -- | Inferred type wrapper
 -- Required to wrap τ so that it can be unpacked at runtime.
-data Inferred (γ :: [Typ]) where
-  Inferred :: γ ⊢ τ -> Inferred γ
+data Inferred (κ :: [Kind]) (γ :: [Type κ]) where
+  Inferred :: Term κ γ τ -> Inferred κ γ
 
 -- | The Context type for the typechecker.
-data Ctx (γ :: [Typ]) where
-  EmptyC :: Ctx '[]
-  ConsC :: Ident -> STyp τ -> Ctx γ -> Ctx (τ : γ)
+data Ctx (κ :: [Kind]) (γ :: [Type κ]) where
+  EmptyC :: Ctx '[] '[]
+  ConsC :: Ident -> SType τ -> Ctx κ γ -> Ctx κ (τ : γ)
+  ConsK :: Ident -> SKind k -> Ctx κ γ -> Ctx (k : κ) γ
 
 -- | Runtime wrapper for results of looking up a variable in the context.
-data Found (γ :: [Typ]) where
-  Found :: STyp τ -> τ ∈ γ -> Found γ
+data Found (κ :: [Kind]) (γ :: [Type κ]) where
+  Found :: SType τ -> τ ∈ γ -> Found κ γ
 
 -- | Lookup the type of the given identifier in the context.
-lookupCtx :: Ident -> Ctx γ -> Maybe (Found γ)
+lookupCtx :: Ident -> Ctx κ γ -> Maybe (Found κ γ)
 lookupCtx _ EmptyC = Nothing
 lookupCtx n (ConsC n' typ ctx)
   | n == n' = Just $ Found typ Here
@@ -75,15 +76,15 @@ lookupCtx n (ConsC n' typ ctx)
 
 -- | Given a context and a term in that context, produce the Singleton type
 -- for the term.
-extractSTyp :: Ctx γ -> γ ⊢ τ -> STyp τ
-extractSTyp (ConsC _ typ ctx) (Var idx) = case idx of
+extractSType :: Ctx κ γ -> Term κ γ τ -> SType τ
+extractSType (ConsC _ typ ctx) (Var idx) = case idx of
   Here -> typ
-  There idx' -> extractSTyp ctx (Var idx')
-extractSTyp EmptyC (Var x) = absurdVar x
-extractSTyp _ Zero = SNat
-extractSTyp _ (Succ _) = SNat
-extractSTyp ctx (Lam atyp rterm) =
-  let rtyp = extractSTyp (ConsC (Ident "") atyp ctx) rterm
+  There idx' -> extractSType ctx (Var idx')
+extractSType EmptyC (Var x) = absurdVar x
+extractSType _ Zero = SNat
+extractSType _ (Succ _) = SNat
+extractSType ctx (Lam atyp rterm) =
+  let rtyp = extractSType (ConsC (Ident "") atyp ctx) rterm
    in SArr atyp rtyp
-extractSTyp ctx (App fterm _) = case extractSTyp ctx fterm of
+extractSType ctx (App fterm _) = case extractSType ctx fterm of
   SArr _ rtyp -> rtyp

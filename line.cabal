@@ -53,6 +53,8 @@ executable line
     EmptyCase
     KindSignatures
     RankNTypes
+    StandaloneKindSignatures
+    PolyKinds
 
   build-depends:
    -- Lower bounds set to versions shipped with GHC 8.6.5
