@@ -1,60 +1,61 @@
 module Evaluator where
 
 import Types
+import BookKeeping
 
 -- | Evaluator entrypoint, convert an expression to a Value
-evaluate :: '[] ⊢ τ -> Val τ
-evaluate term = case step term of
-  Right term' -> evaluate term'
-  Left val -> val
+evaluate :: Exp -> Val
+evaluate e = case toVal e of
+  Just val -> val
+  Nothing -> evaluate . step $ e
 
--- | Perform the next reduction of the given term, if one exists
-step :: '[] ⊢ τ -> Either (Val τ) ('[] ⊢ τ)
-step (Var x) = absurdVar x
-step Zero = Left $ VNat Zero
-step (Succ e) = Left $ VNat (Succ e)
-step (Lam arg body) = Left $ VLam arg body
-step (App fun arg) = Right $ case fun of
-  (Lam _ body) -> subst arg body
-  app@(App _ _) -> case step app of
-    Right fun' -> App fun' arg
-    Left (VLam st body') -> App (Lam st body') arg
-  (Var x) -> absurdVar x
+-- | Check if an expression is a Value.
+toVal :: Exp -> Maybe Val
+-- 16.3a
+toVal (EFLam t e) = Just $ VLam t e
+-- 16.3b
+toVal (ETLam e) = Just $ VTLam e
+-- 9.2a
+toVal e@EZero = Just $ VNat (toInt e)
+-- 9.2b
+toVal e@(ESucc _) = Just $ VNat (toInt e)
+-- 10.4a --special case of rule that are technically eager
+toVal (ETupl es) = Just $ VProd es
 
--- | START: Substitution Utilities
+toVal (EInj i e) = Just $ VSum i e
 
--- | Perform a substitution, replacing the first bound variable with the given
--- term of the same type.
-subst :: γ ⊢ τ' -> (τ' : γ) ⊢ τ -> γ ⊢ τ
-subst e' = substAll $ \case
-  Here -> e'
-  There x -> Var x
+toVal _ = Nothing
 
-type Subst γ γ₀ = forall τ. τ ∈ γ₀ -> γ ⊢ τ
+toInt :: Exp -> Int
+toInt EZero = 0
+-- ESucc must evaluate e here to handle lazy dynamics
+toInt (ESucc e) = case evaluate e of
+  VNat n -> 1 + n
+  v -> error $ "Cannot convert value " <> show v <> " to Int."
+toInt e = error $ "Cannot convert " <> show e <> " to Int."
 
-liftS :: Subst γ γ₀ -> Subst (τ ': γ) (τ ': γ₀)
-liftS _ Here = Var Here
-liftS σ (There x) = weaken (σ x)
+-- | Implement the step-wise evaluation of an expression
+--
+-- Uses a Lazy evaluation strategy
+step :: Exp -> Exp
+-- 16.3c
+step (EFApp (EFLam _ body) arg) = substExp arg body
+-- 16.3d
+step (EFApp e arg) = EFApp (step e) arg
+-- 16.3f
+step (ETApp (ETLam body) t) = substTypInExp t body
+-- 16.3g
+step (ETApp e t) = ETApp (step e) t
+--10.4c and 10.4d
+step (EProj e i) = case e of
+  ETupl es -> es !! i
+  _ -> EProj (step e) i
 
-substAll :: Subst γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
-substAll σ (Var x) = σ x
-substAll _ Zero = Zero
-substAll σ (Succ e) = Succ (substAll σ e)
-substAll σ (App f a) = App (substAll σ f) (substAll σ a)
-substAll σ (Lam τ e) = Lam τ (substAll (liftS σ) e)
+step (ECase e es) = case e of
+  EInj i e' -> substExp e' (es !! i)
+  _ -> ECase (step e) es
 
-type Renaming γ γ₀ = forall τ. τ ∈ γ₀ -> τ ∈ γ
+-- dynamics of sums and products
 
-weaken :: γ ⊢ τ -> (τ' : γ) ⊢ τ
-weaken = rename There
-
-liftR :: Renaming γ γ₀ -> Renaming (τ ': γ) (τ ': γ₀)
-liftR _ Here = Here
-liftR r (There x) = There (r x)
-
-rename :: Renaming γ γ₀ -> γ₀ ⊢ τ -> γ ⊢ τ
-rename r (Var x) = Var (r x)
-rename _ Zero = Zero
-rename r (Succ e) = Succ (rename r e)
-rename r (App e1 e2) = App (rename r e1) (rename r e2)
-rename r (Lam s e) = Lam s (rename (liftR r) e)
+step e =
+  error $ "Given expression " <> show e <> " has no valid step-wise dynamics."
