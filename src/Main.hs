@@ -1,20 +1,20 @@
 import Desugar
 import Evaluator
 import qualified Kx.Abs as A
-import Types
 import Kx.Par (myLexer, pExp)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import TypeChecker
+import Types
 
 -- | Parse, type check, and interpret a program given by the @String@.
 main :: IO ()
 main =
   readSrc
-  >>= runParser
-  >>= runDesugar
-  >>= runTypechecker
-  >>= runEvaluator
+    >>= runParser
+    >>= runDesugar
+    >>= runTypechecker
+    >>= runEvaluator
 
 readSrc :: IO String
 readSrc = do
@@ -31,17 +31,24 @@ runParser s = do
       putStrLn "SYNTAX ERROR"
       putStrLn err
       exitFailure
-    Right tree -> return tree
+    Right tree -> do
+      -- print tree
+      return tree
 
 runDesugar :: A.Exp -> IO Exp
-runDesugar a = return $ desugar a
+runDesugar a = do
+  let p = desugar a
+  -- print p
+  return p
 
 runTypechecker :: Exp -> IO Exp
 runTypechecker e = case typecheck e of
-    Right t -> return e
-    Left err -> do
-      putStrLn $ unlines ["Typechecking Failed:", err]
-      exitFailure
+  Right t -> do
+    -- print t
+    return e
+  Left err -> do
+    putStrLn $ unlines ["Typechecking Failed:", err]
+    exitFailure
 
 runEvaluator :: Exp -> IO ()
 runEvaluator = print . evaluate

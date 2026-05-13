@@ -1,7 +1,7 @@
 module Evaluator where
 
-import Types
 import BookKeeping
+import Types
 
 -- | Evaluator entrypoint, convert an expression to a Value
 evaluate :: Exp -> Val
@@ -21,9 +21,7 @@ toVal e@EZero = Just $ VNat (toInt e)
 toVal e@(ESucc _) = Just $ VNat (toInt e)
 -- 10.4a --special case of rule that are technically eager
 toVal (ETupl es) = Just $ VProd es
-
 toVal (EInj i e) = Just $ VSum i e
-
 toVal _ = Nothing
 
 toInt :: Exp -> Int
@@ -46,15 +44,13 @@ step (EFApp e arg) = EFApp (step e) arg
 step (ETApp (ETLam body) t) = substTypInExp t body
 -- 16.3g
 step (ETApp e t) = ETApp (step e) t
---10.4c and 10.4d
+-- 10.4c and 10.4d
 step (EProj e i) = case e of
   ETupl es -> es !! i
   _ -> EProj (step e) i
-
 step (ECase e es) = case e of
   EInj i e' -> substExp e' (es !! i)
   _ -> ECase (step e) es
-
 -- dynamics of sums and products
 
 step e =

@@ -25,6 +25,7 @@ ETApp. Exp3 ::= Exp3 "[" Typ "]";
 EFLam. Exp2 ::= "λ" Ident ":" Typ "." Exp2;
 ETLam. Exp2 ::= "Λ" Ident "." Exp2;
 ELet.  Exp1 ::= "let" Ident ":" Typ "=" Exp2 "in" Exp;
+ETDec. Exp1 ::= "dec" Ident ":" Typ "in" Exp;
 coercions Exp 5;
 separator Exp "," ;
 
