@@ -49,6 +49,8 @@ data Type (κ :: [Kind]) where
   Nat :: Type κ
   Arr :: Type κ -> Type κ -> Type κ
   -- VarType :: k ∈ κ -> Type κ
+  VarType :: forall k κ. (k ∈ κ) -> Type κ
+  Forall :: Kind -> Type (k : κ) -> Type κ
 
 -- | Well typed Term definitions
 data Term (κ :: [Kind]) (γ :: [Type κ]) (τ :: Type κ) where
@@ -57,6 +59,11 @@ data Term (κ :: [Kind]) (γ :: [Type κ]) (τ :: Type κ) where
   Lam :: SType τ₁ -> Term κ (τ₁ : γ) τ₂ -> Term κ γ (Arr τ₁ τ₂)
   App :: Term κ γ (Arr τ₁ τ₂) -> Term κ γ τ₁ -> Term κ γ τ₂
   Var :: τ ∈ γ -> Term κ γ τ
+  -- TypeVar :: (k ∈ κ) -> Term κ γ (VarType k)
+  TypeVar :: forall k κ γ (i :: k ∈ κ). Term κ γ (VarType i)
+  TypeLam :: Term (k : κ) γ τ -> Term κ γ (Forall k τ)
+  -- TODO: Need type level weakening and subst
+  -- TypeApp :: Term κ γ (Forall k) -> SType r -> Term κ γ τ
 
 instance Show (Term κ γ τ) where
   show (Var x) = "(Var " <> show x <> ")"
