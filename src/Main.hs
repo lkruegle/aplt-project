@@ -1,44 +1,47 @@
-import System.Environment (getArgs)
-import System.Exit        (exitFailure)
-
-import Kx.Par            (pExp, myLexer)
-import Kx.Abs            
-import Kx.Print          (printTree)
-
-import TypeChecker
-import Evaluator
 import Desugar
+import Evaluator
+import qualified Kx.Abs as A
+import Types
+import Kx.Par (myLexer, pExp)
+import System.Environment (getArgs)
+import System.Exit (exitFailure)
+import TypeChecker
 
 -- | Parse, type check, and interpret a program given by the @String@.
-
 main :: IO ()
-main = readSrc >>= parse >>= runPipeline
+main =
+  readSrc
+  >>= runParser
+  >>= runDesugar
+  >>= runTypechecker
+  >>= runEvaluator
 
-parse :: String -> IO Exp
-parse s = do
+readSrc :: IO String
+readSrc = do
+  getArgs >>= \case
+    [file] -> readFile file
+    _ -> do
+      putStrLn "Usage: line <SourceFile>"
+      exitFailure
+
+runParser :: String -> IO A.Exp
+runParser s = do
   case pExp (myLexer s) of
-    Left err  -> do
+    Left err -> do
       putStrLn "SYNTAX ERROR"
       putStrLn err
       exitFailure
     Right tree -> return tree
 
-runPipeline :: Exp -> IO ()
-runPipeline e = do
-  putStrLn $ printTree e
-  let e' = desugar e
-  print e'
-  case typecheck e' of
-    Left err -> putStrLn err
-    Right typed -> do
-      print typed
-      print . evaluate $ e'
+runDesugar :: A.Exp -> IO Exp
+runDesugar a = return $ desugar a
 
--- | Main: read file passed by only command line argument and call 'check'.
-readSrc :: IO String
-readSrc = do
-  getArgs >>= \case
-    [file] -> readFile file
-    _      -> do
-      putStrLn "Usage: line <SourceFile>"
+runTypechecker :: Exp -> IO Exp
+runTypechecker e = case typecheck e of
+    Right t -> return e
+    Left err -> do
+      putStrLn $ unlines ["Typechecking Failed:", err]
       exitFailure
+
+runEvaluator :: Exp -> IO ()
+runEvaluator = print . evaluate
