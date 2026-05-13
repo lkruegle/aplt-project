@@ -41,9 +41,8 @@ data Exp
 
 -- | START: Typed syntax and proof types
 
-data Kind where
-  KTyp :: Kind
-  KArr :: Kind -> Kind -> Kind
+data Kind = KTyp | KArr Kind Kind
+  deriving (Show, Eq)
 
 data Type (κ :: [Kind]) where
   Nat :: Type κ
