@@ -40,6 +40,16 @@ data Exp
 
 -- | START: Typed syntax and proof types
 
+-- | List of terms of a given list of types in a context
+--  
+--  used for generalised products
+data TypList m (ts :: [Typ]) where
+  Emp :: TypList m '[]
+  Cons :: m τ -> TypList m tys -> TypList m (τ:tys)
+
+instance Show (TypList m ts) where
+  show trs = "TypList" -- TODO: is it possible to get a proper show instance here?
+
 -- | Well typed Term definitions
 data (γ :: [Typ]) ⊢ (τ :: Typ) where
   Zero :: γ ⊢ 'TNat
@@ -47,6 +57,12 @@ data (γ :: [Typ]) ⊢ (τ :: Typ) where
   Lam :: STyp τ₁ -> (τ₁ : γ) ⊢ τ₂ -> γ ⊢ 'TArr τ₁ τ₂
   App :: γ ⊢ 'TArr τ₁ τ₂ -> γ ⊢ τ₁ -> γ ⊢ τ₂
   Var :: τ ∈ γ -> γ ⊢ τ
+  Prod :: TypList ((⊢) γ) ts -> γ ⊢ TProd ts
+  Proj :: γ ⊢ TProd ts -> τ ∈ ts -> γ ⊢ τ
+
+-- TODO: Define the rest of the terms
+-- All :: ??
+-- Free :: ??
 
 instance Show (γ ⊢ τ) where
   show (Var x) = "(Var " <> show x <> ")"
@@ -54,10 +70,8 @@ instance Show (γ ⊢ τ) where
   show (Succ e) = "(Succ " <> show e <> ")"
   show (Lam t body) = "λx : " <> show t <> " . " <> show body
   show (App f a) = "(" <> show f <> ")(" <> show a <> ")"
-
--- TODO: Define the rest of the terms
--- All :: ??
--- Free :: ??
+  show (Prod tl) = "<" <> show tl <> ">"
+  show (Proj tr x) = show tr <> "." <> show (depth x)
 
 -- | Membership proofs
 data (τ :: Typ) ∈ (γ :: [Typ]) where
@@ -78,8 +92,9 @@ absurdVar = \case {}
 
 -- | Singleton type
 data STyp (τ :: Typ) where
-  SNat :: STyp 'TNat
-  SArr :: STyp τ₁ -> STyp τ₂ -> STyp ('TArr τ₁ τ₂)
+  SNat  :: STyp 'TNat
+  SArr  :: STyp τ₁ -> STyp τ₂ -> STyp ('TArr τ₁ τ₂)
+  SProd :: TypList STyp ts -> STyp ('TProd ts)
 
 -- TODO: Define the rest of the STyps
 
@@ -93,6 +108,11 @@ toSTyp :: Typ -> SomeSTyp
 toSTyp TNat = SomeSTyp SNat
 toSTyp (TArr a r) = case (toSTyp a, toSTyp r) of
   (SomeSTyp sa, SomeSTyp sr) -> SomeSTyp $ SArr sa sr
+toSTyp (TProd tys) = SomeSTyp $ SProd (go tys)
+  where
+    go :: [Typ] -> TypList STyp ts
+    go [] = Emp
+    go (ty:tys) = Cons (let SomeSTyp st = toSTyp ty in st) (go tys)
 toSTyp _ = undefined
 
 instance Show (STyp τ) where
