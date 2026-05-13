@@ -87,6 +87,8 @@ infer c (ETLam e) = do
 infer c (ETApp e tau) = do
   wellFormed c tau
   case e of
+    -- Because of how inference uses the modified AST to do inference,
+    -- this has substitution must be done explicitly to implement this rule.
     ETLam body ->
       infer c (substTypInExp tau body)
     _ -> do
