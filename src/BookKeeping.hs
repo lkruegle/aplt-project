@@ -52,20 +52,20 @@ shiftTyp _ t = t
 -- Replaces all type variables at index 0 with the given type and shifts the
 -- remaining type variable's indices in response.
 substTyp :: Typ -> Typ -> Typ
-substTyp = go 0
+substTyp = sTyp 0
   where
-    go d s (TVar k)
-      | k == d = shiftTypBy d 0 s
+    sTyp d s (TVar k)
+      | k == d = sTypBy d 0 s
       | k > d = TVar (k - 1)
       | otherwise = TVar k
-    go d s (TArr a b) = TArr (go d s a) (go d s b)
-    go d s (TAll t) = TAll (go (d + 1) s t)
-    go d s (TProd ts) = TProd (map (go d s) ts)
-    go d s (TSum ts) = TSum (map (go d s) ts)
-    go _ _ t = t
+    sTyp d s (TArr a b) = TArr (sTyp d s a) (sTyp d s b)
+    sTyp d s (TAll t) = TAll (sTyp (d + 1) s t)
+    sTyp d s (TProd ts) = TProd (map (sTyp d s) ts)
+    sTyp d s (TSum ts) = TSum (map (sTyp d s) ts)
+    sTyp _ _ t = t
     -- \| Helper to do repeated shifts
-    shiftTypBy 0 _ t = t
-    shiftTypBy n c t = shiftTypBy (n - 1) c (shiftTyp c t)
+    sTypBy 0 _ t = t
+    sTypBy n c t = sTypBy (n - 1) c (shiftTyp c t)
 
 -- | Perform term variable shifting of de bruijn indices.
 -- Shifts all indices equal to or larger than the given cutoff
@@ -92,11 +92,11 @@ shiftExp _ e = e
 substExp :: Exp -> Exp -> Exp
 substExp = sExp 0
   where
-    -- \| Do substitution while tracking the current depth at which substitution
+    -- Do substitution while tracking the current depth at which substitution
     -- is happening. If a lambda occurs, shift all existing indices up by 1.
     sExp d e v@(EVar i)
       -- Shift the variables in e up by d to keep them valid
-      | i == d = shiftExpN d 0 e
+      | i == d = sExpN d 0 e
       | i > d = EVar (i - 1)
       | otherwise = v
     sExp d e (EFLam t body) = EFLam t $ sExp (d + 1) (shiftExp 0 e) body
@@ -109,9 +109,9 @@ substExp = sExp 0
     sExp d e (ECase e' es) = ECase (sExp d e e') (map (sExp (d + 1) (shiftExp 0 e)) es)
     sExp d e (EInj i e') = EInj i (sExp d e e')
     sExp _ _ e' = e'
-    -- \| Shift all variables in e with indices above c by n
-    shiftExpN 0 _ e = e
-    shiftExpN n c e = shiftExpN (n - 1) c (shiftExp c e)
+    -- Shift all variables in e with indices above c by n
+    sExpN 0 _ e = e
+    sExpN n c e = sExpN (n - 1) c (shiftExp c e)
 
 -- | Perform type substitution across the given expression
 --
