@@ -33,10 +33,31 @@ infer c (EFApp func arg) = do
           Right $ Inferred (App fterm aterm)
         Left err -> Left $ "Function applied to incorrect argument type. " ++ err
     _ -> Left "Function application applied to non-function term"
+infer c (ETupl exps) = do
+  InferredTuple tup <- inferTuple c exps
+  Right $ Inferred $ Prod tup
+infer c (EProj exp idx) = do
+  Inferred term <- infer c exp
+  case term of
+    Prod tup -> case lookupTuple c idx tup of
+      Nothing -> error "Projection index out of bounds!"
+      Just (Found _ mp) -> Right $ Inferred (Proj mp term)
+    _ -> error "Projection applied to non-product type"
+
 infer _ _ = undefined
 
+data InferredTuple γ where
+  InferredTuple :: Tuple γ τs -> InferredTuple γ
+
+inferTuple :: Ctx γ -> [Exp] -> M (InferredTuple γ)
+inferTuple _ [] = Right $ InferredTuple Unit
+inferTuple c (e:es) = do
+  Inferred t <- infer c e
+  InferredTuple ts <- inferTuple c es
+  return $ InferredTuple (Cons t ts)
+
 -- | Check that the given expression has some expected type in the given context.
-check :: Ctx γ -> STyp τ -> Exp -> M (γ ⊢ τ)
+check :: Ctx γ -> STyp τ -> Exp -> M (Term γ τ)
 check c typ exp = case infer c exp of
   Left err -> Left err
   Right (Inferred term) ->
@@ -53,7 +74,7 @@ type M a = Either String a
 -- | Inferred type wrapper
 -- Required to wrap τ so that it can be unpacked at runtime.
 data Inferred (γ :: [Typ]) where
-  Inferred :: γ ⊢ τ -> Inferred γ
+  Inferred :: Term γ τ -> Inferred γ
 
 -- | The Context type for the typechecker.
 data Ctx (γ :: [Typ]) where
@@ -73,9 +94,20 @@ lookupCtx n (ConsC n' typ ctx)
       Nothing -> Nothing
       (Just (Found typ' idx)) -> Just (Found typ' (There idx))
 
+lookupTuple :: forall γ τs. Ctx γ -> Int ->  Tuple γ τs -> Maybe (Found τs)
+lookupTuple c = go 0
+  where
+    go :: forall τs'. Int -> Int -> Tuple γ τs' -> Maybe (Found τs')
+    go _ _ Unit = Nothing
+    go d i (Cons t ts)
+      | d == i = Just $ Found (extractSTyp c t) Here
+      | otherwise = case go (d + 1) i ts of
+        Nothing -> Nothing
+        (Just (Found typ' idx)) -> Just (Found typ' (There idx))
+
 -- | Given a context and a term in that context, produce the Singleton type
 -- for the term.
-extractSTyp :: Ctx γ -> γ ⊢ τ -> STyp τ
+extractSTyp :: forall γ τ. Ctx γ -> Term γ τ -> STyp τ
 extractSTyp (ConsC _ typ ctx) (Var idx) = case idx of
   Here -> typ
   There idx' -> extractSTyp ctx (Var idx')
@@ -87,3 +119,15 @@ extractSTyp ctx (Lam atyp rterm) =
    in SArr atyp rtyp
 extractSTyp ctx (App fterm _) = case extractSTyp ctx fterm of
   SArr _ rtyp -> rtyp
+extractSTyp ctx (Prod tup) = SProd $ go tup
+  where
+    go :: Tuple γ τs -> STuple τs
+    go Unit = SUnit
+    go (Cons t ts) = SCons (extractSTyp ctx t) (go ts)
+extractSTyp ctx (Proj idx prod) =
+  let SProd stup = extractSTyp ctx prod
+   in go idx stup
+  where
+    go :: τ ∈ τs -> STuple τs -> STyp τ
+    go Here (SCons st _) = st
+    go (There i) (SCons _ sts) = go i sts
