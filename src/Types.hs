@@ -41,17 +41,32 @@ data Exp
 -- | START: Typed syntax and proof types
 
 data Tuple (γ :: [Typ]) (τs :: [Typ]) where
-  Unit :: Tuple γ '[]
-  Cons :: Term γ τ -> Tuple γ τs -> Tuple γ (τ : τs)
+  TNil :: Tuple γ '[]
+  TCons :: Term γ τ -> Tuple γ τs -> Tuple γ (τ : τs)
 
 instance Show (Tuple γ τs) where
   show tup = "<" <> go tup <> ">"
     where
       go :: Tuple γ' τs' -> String
-      go Unit = ""
-      go (Cons t ts) = show t <> case ts of
-        Unit -> ""
+      go TNil = ""
+      go (TCons t ts) = show t <> case ts of
+        TNil -> ""
         _ -> ", " <> go ts
+
+data Cases (γ :: [Typ]) (τs :: [Typ]) (τ :: Typ) where
+  CNil :: Cases γ τs τ
+  CCase :: Term (τ' : γ) τ -> Cases γ τs τ -> Cases γ (τ' : τs) τ
+
+instance Show (Cases γ τs τ) where
+  show cases = "{" <> go 0 cases <> "}"
+    where
+      go :: Int -> Cases γ' τs' τ' -> String
+      go _ CNil = ""
+      go i (CCase c cs) =
+        show i <> " ☞  " <> show c
+        <> case cs of
+          CNil -> ""
+          _    -> ", " <> go (i + 1) cs
 
 -- | Well typed Term definitions
 data Term (γ :: [Typ]) (τ :: Typ) where
@@ -60,8 +75,10 @@ data Term (γ :: [Typ]) (τ :: Typ) where
   Lam :: STyp τ₁ -> Term (τ₁ : γ) τ₂ -> Term γ ('TArr τ₁ τ₂)
   App :: Term γ ('TArr τ₁ τ₂) -> Term γ τ₁ -> Term γ τ₂
   Var :: τ ∈ γ -> Term γ τ
-  Prod :: Tuple γ τs -> Term γ ('TProd τs)
+  Tup :: Tuple γ τs -> Term γ ('TProd τs)
   Proj :: τ ∈ τs -> Term γ ('TProd τs) -> Term γ τ
+  Inj :: τ ∈ τs -> Term γ τ -> STuple τs -> Term γ ('TSum τs)
+  Case :: Term γ ('TSum τs) -> Cases γ τs τ -> Term γ τ
 
 instance Show (Term γ τ) where
   show (Var x) = "(Var " <> show x <> ")"
@@ -69,8 +86,10 @@ instance Show (Term γ τ) where
   show (Succ e) = "(Succ " <> show e <> ")"
   show (Lam t body) = "λx : " <> show t <> " . " <> show body
   show (App f a) = "(" <> show f <> ")(" <> show a <> ")"
-  show (Prod tup) = show tup
+  show (Tup tup) = show tup
   show (Proj idx tup) = show tup <> "." <> show idx
+  show (Inj idx t _) = show idx <> "." <> show t
+  show (Case t c) = unwords ["case", show t, show c]
 
 -- | Membership proofs
 data (τ :: a) ∈ (γ :: [a]) where
@@ -88,17 +107,28 @@ depth (There x) = 1 + depth x
 absurdVar :: (τ ∈ '[]) -> a
 absurdVar = \case {}
 
-data STuple (τs :: [Typ]) where
-  SUnit :: STuple '[]
-  SCons :: STyp τ -> STuple τs -> STuple (τ : τs)
-
 -- | Singleton type
 data STyp (τ :: Typ) where
   SNat :: STyp 'TNat
   SArr :: STyp τ₁ -> STyp τ₂ -> STyp ('TArr τ₁ τ₂)
   SProd :: STuple τs -> STyp ('TProd τs)
+  SSum :: STuple τs -> STyp ('TSum τs)
 
--- TODO: Define the rest of the STyps
+instance Show (STyp τ) where
+  show SNat = "ℕ"
+  show (SArr a b) = "(" ++ show a ++ " → " ++ show b ++ ")"
+  show (SProd ts) = "<" <> show ts <> ">"
+  show (SSum ts) = "[" <> show ts <> "]"
+
+data STuple (τs :: [Typ]) where
+  SNil :: STuple '[]
+  SCons :: STyp τ -> STuple τs -> STuple (τ : τs)
+
+instance Show (STuple τs) where
+  show SNil = ""
+  show (SCons t ts) = show t <> case ts of
+    SNil -> ""
+    _ -> ", " <> show ts
 
 -- | Type for producing STyps without a polymorphic param.
 -- Allows for runtime unpacking of types without compile-time checking
@@ -113,24 +143,15 @@ toSTyp :: Typ -> SomeSTyp
 toSTyp TNat = SomeSTyp SNat
 toSTyp (TArr a r) = case (toSTyp a, toSTyp r) of
   (SomeSTyp sa, SomeSTyp sr) -> SomeSTyp $ SArr sa sr
-toSTyp (TProd []) = SomeSTyp $ SProd SUnit
+toSTyp (TProd []) = SomeSTyp $ SProd SNil
 toSTyp (TProd tup) = case toSTuple tup of
   SomeSTuple stup -> SomeSTyp $ SProd stup
 toSTyp _ = undefined
 
 toSTuple :: [Typ] -> SomeSTuple
-toSTuple [] = SomeSTuple SUnit
+toSTuple [] = SomeSTuple SNil
 toSTuple (t:ts) = case (toSTyp t, toSTuple ts) of
   (SomeSTyp t', SomeSTuple ts') -> SomeSTuple $ SCons t' ts'
-
-instance Show (STyp τ) where
-  show SNat = "ℕ"
-  show (SArr a b) = "(" ++ show a ++ " -> " ++ show b ++ ")"
-  show (SProd ts) = "<" <> go ts <> ">"
-    where
-      go :: STuple τs -> String
-      go _ = "TODO"
-
 
 -- | Check equality between two STyps
 typEq :: STyp τ₁ -> STyp τ₂ -> Maybe (τ₁ :~: τ₂)
@@ -148,7 +169,7 @@ typEq (SProd a) (SProd b) = do
       Refl <- typEq x y
       Refl <- go xs ys
       return Refl
-    go SUnit SUnit = return Refl
+    go SNil SNil = return Refl
     go _ _ = Nothing
 typEq _ _ = Nothing
 

@@ -15,18 +15,18 @@ step Zero = Left $ Val Zero
 step (Succ e) = Left $ Val (Succ e)
 step lam@(Lam _ _) = Left $ Val lam
 step (App fun arg) = Right $ stepFun fun arg
-step prod@(Prod _) = Left $ Val prod
+step prod@(Tup _) = Left $ Val prod
 step (Proj idx prod) = Right $ stepProj idx prod
 
 stepProj :: τ ∈ τs -> Term '[] ('TProd τs) -> Term '[] τ
-stepProj idx (Prod tup) = lookupTuple idx tup
+stepProj idx (Tup tup) = lookupTuple idx tup
 stepProj idx prod = case step prod of
   Left (Val prod') -> Proj idx prod'
   Right prod' -> Proj idx prod'
 
 lookupTuple :: τ ∈ τs -> Tuple '[] τs -> Term '[] τ
-lookupTuple Here (Cons term _) = term
-lookupTuple (There i) (Cons _ rest) = lookupTuple i rest
+lookupTuple Here (TCons term _) = term
+lookupTuple (There i) (TCons _ rest) = lookupTuple i rest
 
 stepFun :: Term '[] ('TArr τ₁ τ₂) -> Term '[] τ₁ -> Term '[] τ₂
 stepFun (Lam _ body) arg = subst arg body
@@ -55,12 +55,12 @@ substAll _ Zero = Zero
 substAll σ (Succ e) = Succ (substAll σ e)
 substAll σ (App f a) = App (substAll σ f) (substAll σ a)
 substAll σ (Lam τ e) = Lam τ (substAll (liftS σ) e)
-substAll σ (Prod tup) = Prod (substTuple σ tup)
+substAll σ (Tup tup) = Tup (substTuple σ tup)
 substAll σ (Proj i t) = Proj i (substAll σ t)
 
 substTuple :: Subst γ γ₀ -> Tuple γ₀ τs -> Tuple γ τs
-substTuple _ Unit = Unit
-substTuple σ (Cons t ts) = Cons (substAll σ t) (substTuple σ ts)
+substTuple _ TNil = TNil
+substTuple σ (TCons t ts) = TCons (substAll σ t) (substTuple σ ts)
 
 type Renaming γ γ₀ = forall τ. τ ∈ γ₀ -> τ ∈ γ
 
@@ -77,9 +77,9 @@ rename _ Zero = Zero
 rename r (Succ e) = Succ (rename r e)
 rename r (App e1 e2) = App (rename r e1) (rename r e2)
 rename r (Lam s e) = Lam s (rename (liftR r) e)
-rename r (Prod t) = Prod (renameTuple r t)
+rename r (Tup t) = Tup (renameTuple r t)
 rename r (Proj i e) = Proj i (rename r e)
 
 renameTuple :: Renaming γ γ₀ -> Tuple γ₀ τs -> Tuple γ τs
-renameTuple _ Unit = Unit
-renameTuple r (Cons t ts) = Cons (rename r t) (renameTuple r ts)
+renameTuple _ TNil = TNil
+renameTuple r (TCons t ts) = TCons (rename r t) (renameTuple r ts)
