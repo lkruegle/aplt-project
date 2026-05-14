@@ -19,6 +19,7 @@ ESucc. Exp4 ::= "Succ" Exp5;
 ETupl. Exp3 ::= "<" [Exp] ">";
 ECase. Exp3 ::= "case" Exp "of" "[" [Case] "]";
 EInj.  Exp3 ::= Integer "." Exp3;
+EAnnotatedInj. Exp3 ::= "(" Typ ")" Integer "." Exp3;
 EProj. Exp3 ::= Exp3 "." Integer ;
 EFApp. Exp3 ::= Exp3 Exp4;
 ETApp. Exp3 ::= Exp3 "[" Typ "]";

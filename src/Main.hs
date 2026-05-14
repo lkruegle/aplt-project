@@ -1,20 +1,20 @@
 import Desugar
 import Evaluator
 import qualified Kx.Abs as A
-import Types
 import Kx.Par (myLexer, pExp)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import TypeChecker
+import Types
 
 -- | Parse, type check, and interpret a program given by the @String@.
 main :: IO ()
 main =
   readSrc
-  >>= runParser
-  >>= runDesugar
-  >>= runTypechecker
-  >>= runEvaluator
+    >>= runParser
+    >>= runDesugar
+    >>= runTypechecker
+    >>= runEvaluator
 
 readSrc :: IO String
 readSrc = do

@@ -10,6 +10,7 @@ import Prelude hiding (exp)
 typecheck :: Exp -> M (Inferred '[])
 typecheck = infer NilCtx
 
+
 -- | Construct a proof that the given expression is a well typed term in the
 -- given context if such a term can be constructed.
 infer :: Ctx γ -> Exp -> M (Inferred γ)
@@ -21,7 +22,7 @@ infer c (EVar _ i@(Ident n)) = case lookupCtx i c of
   Nothing -> Left $ "No variable bound with name " ++ n
   Just (Found _ x) -> Right $ Inferred (Var x)
 infer c (EFLam x t body) = case toSTyp t of
-  SomeSTyp atyp -> do
+  Some atyp -> do
     Inferred fterm <- infer (ConsCtx x atyp c) body
     Right $ Inferred (Lam atyp fterm)
 infer c (EFApp func arg) = do
@@ -43,21 +44,49 @@ infer c (EProj exp idx) = do
       Nothing -> error "Projection index out of bounds!"
       Just (Found _ mp) -> Right $ Inferred (Proj mp term)
     _ -> error "Projection applied to non-product type"
-
-infer _ _ = undefined
+infer _ e = error $ "Cannot infer type of expression: " <> show e
 
 data InferredTuple γ where
   InferredTuple :: Tuple γ τs -> InferredTuple γ
 
 inferTuple :: Ctx γ -> [Exp] -> M (InferredTuple γ)
 inferTuple _ [] = Right $ InferredTuple TNil
-inferTuple c (e:es) = do
+inferTuple c (e : es) = do
   Inferred t <- infer c e
   InferredTuple ts <- inferTuple c es
   return $ InferredTuple (TCons t ts)
 
 -- | Check that the given expression has some expected type in the given context.
 check :: Ctx γ -> STyp τ -> Exp -> M (Term γ τ)
+check c st inj@(EInj i e _) = case st of
+  SSum ts -> case lookupSTuple i ts of
+    Just (Found et idx) -> do
+      Inferred term <- infer c e
+      let at = extractSTyp c term
+      case typEq at et of
+        Just Refl -> Right $ Inj idx term ts
+        Nothing ->
+          Left $
+            unwords
+              [ "Sum Type mismatch:",
+                show at,
+                "/=",
+                show et,
+                "at index",
+                show i,
+                "in sum type",
+                show st
+              ]
+    Nothing -> error "Index out of bounds for expected Sum type"
+  _ -> Left $ "Expression " <> show inj <> " is not of expected type: " <> show st
+check c t (ECase e cs) = do
+  (Inferred sumt) <- infer c e
+  let st = extractSTyp c sumt
+  case st of
+    SSum ts -> do
+      cases <- checkCases c t ts cs
+      pure $ Case sumt cases
+    _ -> error $ "Expected sum type for cases, got :" <> show st
 check c typ exp = case infer c exp of
   Left err -> Left err
   Right (Inferred term) ->
@@ -65,6 +94,14 @@ check c typ exp = case infer c exp of
      in case typEq typ typ' of
           Nothing -> Left $ unwords ["Expected:", show typ, "Got:", show typ']
           Just Refl -> Right term
+
+checkCases :: Ctx γ -> STyp τ -> STuple τs -> [Exp] -> M (Cases γ τs τ)
+checkCases _ _ SNil [] = Right CNil
+checkCases c t (SCons t' ts') (e:es) = do
+  term <- check (ConsCtx (Ident "") t' c) t e
+  rest <- checkCases c t ts' es
+  Right $ CCons term rest
+checkCases _ _ _ _  = Left "Incorrect number of cases."
 
 -- START: Types and helper functions for typechecking
 
@@ -94,7 +131,7 @@ lookupCtx n (ConsCtx n' typ ctx)
       Nothing -> Nothing
       (Just (Found typ' idx)) -> Just (Found typ' (There idx))
 
-lookupSTuple :: forall τs. Int ->  STuple τs -> Maybe (Found τs)
+lookupSTuple :: forall τs. Int -> STuple τs -> Maybe (Found τs)
 lookupSTuple = go 0
   where
     go :: forall τs'. Int -> Int -> STuple τs' -> Maybe (Found τs')
@@ -102,8 +139,8 @@ lookupSTuple = go 0
     go d i (SCons t ts)
       | d == i = Just $ Found t Here
       | otherwise = case go (d + 1) i ts of
-        Nothing -> Nothing
-        (Just (Found typ' idx)) -> Just (Found typ' (There idx))
+          Nothing -> Nothing
+          (Just (Found typ' idx)) -> Just (Found typ' (There idx))
 
 -- | Given a context and a term in that context, produce the Singleton type
 -- for the term.

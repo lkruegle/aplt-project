@@ -33,13 +33,12 @@ data Exp
   | ETupl [Exp]
   | EProj Exp Int
   | ECase Exp [Exp]
-  | EInj Int Exp
+  | EInj Int Exp (Maybe Typ)
   | ETLam Exp
   | ETApp Exp Typ
   deriving (Show, Eq)
 
 -- | START: Typed syntax and proof types
-
 data Tuple (γ :: [Typ]) (τs :: [Typ]) where
   TNil :: Tuple γ '[]
   TCons :: Term γ τ -> Tuple γ τs -> Tuple γ (τ : τs)
@@ -49,24 +48,27 @@ instance Show (Tuple γ τs) where
     where
       go :: Tuple γ' τs' -> String
       go TNil = ""
-      go (TCons t ts) = show t <> case ts of
-        TNil -> ""
-        _ -> ", " <> go ts
+      go (TCons t ts) =
+        show t <> case ts of
+          TNil -> ""
+          _ -> ", " <> go ts
 
 data Cases (γ :: [Typ]) (τs :: [Typ]) (τ :: Typ) where
   CNil :: Cases γ τs τ
-  CCase :: Term (τ' : γ) τ -> Cases γ τs τ -> Cases γ (τ' : τs) τ
+  CCons :: Term (τ' : γ) τ -> Cases γ τs τ -> Cases γ (τ' : τs) τ
 
 instance Show (Cases γ τs τ) where
-  show cases = "{" <> go 0 cases <> "}"
+  show cases = "[" <> go 0 cases <> "]"
     where
       go :: Int -> Cases γ' τs' τ' -> String
       go _ CNil = ""
-      go i (CCase c cs) =
-        show i <> " ☞  " <> show c
-        <> case cs of
-          CNil -> ""
-          _    -> ", " <> go (i + 1) cs
+      go i (CCons c cs) =
+        show i
+          <> " ☞  "
+          <> show c
+          <> case cs of
+            CNil -> ""
+            _ -> ", " <> go (i + 1) cs
 
 -- | Well typed Term definitions
 data Term (γ :: [Typ]) (τ :: Typ) where
@@ -126,32 +128,33 @@ data STuple (τs :: [Typ]) where
 
 instance Show (STuple τs) where
   show SNil = ""
-  show (SCons t ts) = show t <> case ts of
-    SNil -> ""
-    _ -> ", " <> show ts
+  show (SCons t ts) =
+    show t <> case ts of
+      SNil -> ""
+      _ -> ", " <> show ts
 
 -- | Type for producing STyps without a polymorphic param.
 -- Allows for runtime unpacking of types without compile-time checking
-data SomeSTyp where
-  SomeSTyp :: STyp τ -> SomeSTyp
+data Some a where
+  Some :: a τ -> Some a
 
-data SomeSTuple where
-  SomeSTuple :: STuple τs -> SomeSTuple
-
--- | Wrap a Typ in SomeSTyp
-toSTyp :: Typ -> SomeSTyp
-toSTyp TNat = SomeSTyp SNat
+-- | Wrap a Typ in Some STyp
+toSTyp :: Typ -> Some STyp
+toSTyp TNat = Some SNat
 toSTyp (TArr a r) = case (toSTyp a, toSTyp r) of
-  (SomeSTyp sa, SomeSTyp sr) -> SomeSTyp $ SArr sa sr
-toSTyp (TProd []) = SomeSTyp $ SProd SNil
+  (Some sa, Some sr) -> Some $ SArr sa sr
+toSTyp (TProd []) = Some $ SProd SNil
 toSTyp (TProd tup) = case toSTuple tup of
-  SomeSTuple stup -> SomeSTyp $ SProd stup
+  Some stup -> Some $ SProd stup
+toSTyp (TSum []) = Some $ SSum SNil
+toSTyp (TSum tup) = case toSTuple tup of
+  Some stup -> Some $ SSum stup
 toSTyp _ = undefined
 
-toSTuple :: [Typ] -> SomeSTuple
-toSTuple [] = SomeSTuple SNil
-toSTuple (t:ts) = case (toSTyp t, toSTuple ts) of
-  (SomeSTyp t', SomeSTuple ts') -> SomeSTuple $ SCons t' ts'
+toSTuple :: [Typ] -> Some STuple
+toSTuple [] = Some SNil
+toSTuple (t : ts) = case (toSTyp t, toSTuple ts) of
+  (Some t', Some ts') -> Some $ SCons t' ts'
 
 -- | Check equality between two STyps
 typEq :: STyp τ₁ -> STyp τ₂ -> Maybe (τ₁ :~: τ₂)
@@ -161,17 +164,20 @@ typEq (SArr a b) (SArr c d) = do
   Refl <- typEq b d
   return Refl
 typEq (SProd a) (SProd b) = do
-  Refl <- go a b
+  Refl <- stupleEq a b
   return Refl
-  where
-    go :: STuple τs -> STuple τs' -> Maybe (τs :~: τs')
-    go (SCons x xs) (SCons y ys) = do
-      Refl <- typEq x y
-      Refl <- go xs ys
-      return Refl
-    go SNil SNil = return Refl
-    go _ _ = Nothing
+typEq (SSum a) (SSum b) = do
+  Refl <- stupleEq a b
+  return Refl
 typEq _ _ = Nothing
+
+stupleEq :: STuple τs -> STuple τs' -> Maybe (τs :~: τs')
+stupleEq (SCons x xs) (SCons y ys) = do
+  Refl <- typEq x y
+  Refl <- stupleEq xs ys
+  return Refl
+stupleEq SNil SNil = return Refl
+stupleEq _ _ = Nothing
 
 -- | START: Value types, produced by the evaluator
 data Val (τ :: Typ) where
