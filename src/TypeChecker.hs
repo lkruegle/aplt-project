@@ -38,8 +38,8 @@ infer c (ETupl exps) = do
   Right $ Inferred $ Prod tup
 infer c (EProj exp idx) = do
   Inferred term <- infer c exp
-  case term of
-    Prod tup -> case lookupTuple c idx tup of
+  case extractSTyp c term of
+    (SProd stup) -> case lookupSTuple idx stup of
       Nothing -> error "Projection index out of bounds!"
       Just (Found _ mp) -> Right $ Inferred (Proj mp term)
     _ -> error "Projection applied to non-product type"
@@ -94,13 +94,13 @@ lookupCtx n (ConsC n' typ ctx)
       Nothing -> Nothing
       (Just (Found typ' idx)) -> Just (Found typ' (There idx))
 
-lookupTuple :: forall γ τs. Ctx γ -> Int ->  Tuple γ τs -> Maybe (Found τs)
-lookupTuple c = go 0
+lookupSTuple :: forall τs. Int ->  STuple τs -> Maybe (Found τs)
+lookupSTuple = go 0
   where
-    go :: forall τs'. Int -> Int -> Tuple γ τs' -> Maybe (Found τs')
-    go _ _ Unit = Nothing
-    go d i (Cons t ts)
-      | d == i = Just $ Found (extractSTyp c t) Here
+    go :: forall τs'. Int -> Int -> STuple τs' -> Maybe (Found τs')
+    go _ _ SUnit = Nothing
+    go d i (SCons t ts)
+      | d == i = Just $ Found t Here
       | otherwise = case go (d + 1) i ts of
         Nothing -> Nothing
         (Just (Found typ' idx)) -> Just (Found typ' (There idx))

@@ -34,10 +34,12 @@ runParser s = do
     Right tree -> return tree
 
 runDesugar :: A.Exp -> IO Exp
-runDesugar a = return $ desugar a
+runDesugar = return . desugar
 
 runTypechecker :: Exp -> IO (Inferred '[])
-runTypechecker e = case typecheck e of
+runTypechecker e = do
+  print e
+  case typecheck e of
     Right prg -> return prg
     Left err -> do
       putStrLn $ unlines ["Typechecking Failed:", err]
