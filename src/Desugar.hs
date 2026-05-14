@@ -21,10 +21,10 @@ desugarTyp s (A.TVar t) = case elemIndex t (boundTyps s) of
   Just i -> TVar i
   Nothing -> TFree t
 desugarTyp s (A.TArr tau tau') = TArr (desugarTyp s tau) (desugarTyp s tau')
+desugarTyp s (A.TProd taus) = TProd (map (desugarTyp s) taus)
 desugarTyp _ _ = undefined
 
 -- desugarTyp s (A.TAll t tau)  = TAll (desugarTyp (bindTyp t s) tau)
--- desugarTyp s (A.TProd taus) = TProd (map (desugarTyp s) taus)
 -- desugarTyp s (A.TSum taus) = TSum (map (desugarTyp s) taus)
 
 -- | Desugar an expression
@@ -42,14 +42,14 @@ desugarExp s (A.EFLam x tau e) =
    in EFLam x tau' (desugarExp (bindTerm x s) e)
 desugarExp s (A.ELet x t e1 e2) =
   desugarExp s $ A.EFApp (A.EFLam x t e2) e1
+desugarExp s (A.ETupl es) = ETupl (map (desugarExp s) es)
+desugarExp s (A.EProj e i) = EProj (desugarExp s e) (fromIntegral i)
 desugarExp _ _ = undefined
 
 -- desugarExp s (A.ETApp e tau) =
 --   ETApp (desugarExp s e) (desugarTyp s tau)
 -- desugarExp s (A.ETLam t e) =
 --   ETLam (desugarExp (bindTyp t s) e)
--- desugarExp s (A.ETupl es) = ETupl (map (desugarExp s) es)
--- desugarExp s (A.EProj e i) = EProj (desugarExp s e) (fromIntegral i)
 -- desugarExp s (A.ECase e es) = ECase (desugarExp s e) (map go es)
 --   where
 --     go (A.Match i e) = desugarExp (bindTerm i s) e
