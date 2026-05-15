@@ -10,7 +10,6 @@ import Prelude hiding (exp)
 typecheck :: Exp -> M (Inferred '[])
 typecheck = infer NilCtx
 
-
 -- | Construct a proof that the given expression is a well typed term in the
 -- given context if such a term can be constructed.
 infer :: Ctx γ -> Exp -> M (Inferred γ)
@@ -102,11 +101,11 @@ check c typ exp = case infer c exp of
 
 checkCases :: Ctx γ -> STyp τ -> STuple τs -> [(Ident, Exp)] -> M (Cases γ τs τ)
 checkCases _ _ SNil [] = Right CNil
-checkCases c t (SCons t' ts') ((i, e):es) = do
+checkCases c t (SCons t' ts') ((i, e) : es) = do
   term <- check (ConsCtx i t' c) t e
   rest <- checkCases c t ts' es
   Right $ CCons term rest
-checkCases _ _ _ _  = Left "Incorrect number of cases."
+checkCases _ _ _ _ = Left "Incorrect number of cases."
 
 -- START: Types and helper functions for typechecking
 

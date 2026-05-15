@@ -1,7 +1,7 @@
 module Evaluator where
 
-import Prelude hiding (sum)
 import Types
+import Prelude hiding (sum)
 
 -- | Evaluator entrypoint, convert an expression to a Value
 evaluate :: Term '[] τ -> Val τ

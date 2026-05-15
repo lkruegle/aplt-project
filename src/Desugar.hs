@@ -23,6 +23,7 @@ desugarTyp s (A.TVar t) = case elemIndex t (boundTyps s) of
 desugarTyp s (A.TArr tau tau') = TArr (desugarTyp s tau) (desugarTyp s tau')
 desugarTyp s (A.TProd taus) = TProd (map (desugarTyp s) taus)
 desugarTyp s (A.TSum taus) = TSum (map (desugarTyp s) taus)
+
 -- desugarTyp _ _ = undefined
 
 -- desugarTyp s (A.TAll t tau)  = TAll (desugarTyp (bindTyp t s) tau)
@@ -50,6 +51,7 @@ desugarExp s (A.ECase e es) = ECase (desugarExp s e) (map go es)
     go (A.Match i c) = (i, desugarExp (bindTerm i s) c)
 desugarExp s (A.EInj i e) =
   EInj (fromIntegral i) (desugarExp s e)
+
 -- desugarExp _ _ = undefined
 
 -- desugarExp s (A.ETApp e tau) =
