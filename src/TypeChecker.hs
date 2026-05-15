@@ -175,5 +175,7 @@ extractSTyp ctx (Proj idx prod) =
 extractSTyp _ (Inj _ _ ts) = SSum ts
 extractSTyp ctx (Case t cases) = case (extractSTyp ctx t, cases) of
   (SSum (SCons t' _), CCons c _) -> extractSTyp (ConsCtx (Ident "") t' ctx) c
+  -- In principle, these cases should not be constructable but this cannot be
+  -- proven to GHC.
   (SSum SNil, _) -> error "Cannot case on an empty Sum type"
   (_, CNil) -> error "Cannot proceed on empty cases"
