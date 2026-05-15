@@ -9,25 +9,25 @@ TAll.  Typ1 ::= "forall" Ident "." Typ1;
 coercions Typ 5;
 separator Typ "," ;
 
-
 separator Case "," ;
 Match. Case ::= Ident "->" Exp ;
 
 EVar.  Exp5 ::= Ident;
 EZero. Exp5 ::= "Zero";
-ESucc. Exp4 ::= "Succ" Exp5;
-ETupl. Exp3 ::= "<" [Exp] ">";
-ECase. Exp3 ::= "case" Exp "of" "[" [Case] "]";
-EInj.  Exp3 ::= Integer "." Exp3;
-EAnnotatedInj. Exp3 ::= "(" Typ ")" Integer "." Exp3;
-EProj. Exp3 ::= Exp3 "." Integer ;
-EFApp. Exp3 ::= Exp3 Exp4;
-ETApp. Exp3 ::= Exp3 "[" Typ "]";
+ESucc. Exp5 ::= "Succ" Exp5;
+ETupl. Exp5 ::= "<" [Exp] ">";
+EProj. Exp4 ::= Exp4 "." Integer;
+EInj.  Exp4 ::= Integer "." Exp5;
+EAnnotatedInj. Exp4 ::= "(" Typ ")" Integer "." Exp5;
+EFApp. Exp4 ::= Exp4 Exp5;
+ETApp. Exp4 ::= Exp4 "[" Typ "]";
+ECase. Exp3 ::= "case" Exp5 "of" "{" [Case] "}";
 EFLam. Exp2 ::= "λ" Ident ":" Typ "." Exp2;
 ETLam. Exp2 ::= "Λ" Ident "." Exp2;
-ELet.  Exp1 ::= "let" Ident ":" Typ "=" Exp2 "in" Exp;
+EAnn.  Exp1 ::= Exp2 ":" Typ;
+ELet.  Exp ::= "let" Ident ":" Typ "=" Exp1 "in" Exp;
 coercions Exp 5;
-separator Exp "," ;
+separator Exp ",";
 
 comment "--" ;
 comment "{-" "-}" ;

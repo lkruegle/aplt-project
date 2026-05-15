@@ -14,6 +14,8 @@ typecheck = infer NilCtx
 -- | Construct a proof that the given expression is a well typed term in the
 -- given context if such a term can be constructed.
 infer :: Ctx γ -> Exp -> M (Inferred γ)
+infer c (ETAnn e t) = case toSTyp t of
+  Some t' -> check c t' e >>= Right . Inferred
 infer _ EZero = Right $ Inferred Zero
 infer c (ESucc e) = do
   term <- check c SNat e
@@ -58,6 +60,9 @@ inferTuple c (e : es) = do
 
 -- | Check that the given expression has some expected type in the given context.
 check :: Ctx γ -> STyp τ -> Exp -> M (Term γ τ)
+check c (SArr atyp rtyp) (EFLam x _ body) = do
+  term <- check (ConsCtx x atyp c) rtyp body
+  Right $ Lam atyp term
 check c st inj@(EInj i e _) = case st of
   SSum ts -> case lookupSTuple i ts of
     Just (Found et idx) -> do
@@ -168,3 +173,4 @@ extractSTyp ctx (Proj idx prod) =
     go :: τ ∈ τs -> STuple τs -> STyp τ
     go Here (SCons st _) = st
     go (There i) (SCons _ sts) = go i sts
+-- TODO: finish cases

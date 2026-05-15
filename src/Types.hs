@@ -36,6 +36,7 @@ data Exp
   | EInj Int Exp (Maybe Typ)
   | ETLam Exp
   | ETApp Exp Typ
+  | ETAnn Exp Typ
   deriving (Show, Eq)
 
 -- | START: Typed syntax and proof types
@@ -149,7 +150,6 @@ toSTyp (TProd tup) = case toSTuple tup of
 toSTyp (TSum []) = Some $ SSum SNil
 toSTyp (TSum tup) = case toSTuple tup of
   Some stup -> Some $ SSum stup
-toSTyp _ = undefined
 
 toSTuple :: [Typ] -> Some STuple
 toSTuple [] = Some SNil
