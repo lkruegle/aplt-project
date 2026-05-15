@@ -63,7 +63,7 @@ check :: Ctx γ -> STyp τ -> Exp -> M (Term γ τ)
 check c (SArr atyp rtyp) (EFLam x _ body) = do
   term <- check (ConsCtx x atyp c) rtyp body
   Right $ Lam atyp term
-check c st inj@(EInj i e _) = case st of
+check c st inj@(EInj i e) = case st of
   SSum ts -> case lookupSTuple i ts of
     Just (Found et idx) -> do
       Inferred term <- infer c e
@@ -100,10 +100,10 @@ check c typ exp = case infer c exp of
           Nothing -> Left $ unwords ["Expected:", show typ, "Got:", show typ']
           Just Refl -> Right term
 
-checkCases :: Ctx γ -> STyp τ -> STuple τs -> [Exp] -> M (Cases γ τs τ)
+checkCases :: Ctx γ -> STyp τ -> STuple τs -> [(Ident, Exp)] -> M (Cases γ τs τ)
 checkCases _ _ SNil [] = Right CNil
-checkCases c t (SCons t' ts') (e:es) = do
-  term <- check (ConsCtx (Ident "") t' c) t e
+checkCases c t (SCons t' ts') ((i, e):es) = do
+  term <- check (ConsCtx i t' c) t e
   rest <- checkCases c t ts' es
   Right $ CCons term rest
 checkCases _ _ _ _  = Left "Incorrect number of cases."
@@ -173,4 +173,8 @@ extractSTyp ctx (Proj idx prod) =
     go :: τ ∈ τs -> STuple τs -> STyp τ
     go Here (SCons st _) = st
     go (There i) (SCons _ sts) = go i sts
--- TODO: finish cases
+extractSTyp _ (Inj _ _ ts) = SSum ts
+extractSTyp ctx (Case t cases) = case (extractSTyp ctx t, cases) of
+  (SSum (SCons t' _), CCons c _) -> extractSTyp (ConsCtx (Ident "") t' ctx) c
+  (SSum SNil, _) -> error "Cannot case on an empty Sum type"
+  (_, CNil) -> error "Cannot proceed on empty cases"

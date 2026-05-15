@@ -32,7 +32,7 @@ data Exp
   | EFree Ident
   | ETupl [Exp]
   | EProj Exp Int
-  | ECase Exp [Exp]
+  | ECase Exp [(Ident, Exp)]
   | EInj Int Exp
   | ETLam Exp
   | ETApp Exp Typ
