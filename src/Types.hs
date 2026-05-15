@@ -32,26 +32,44 @@ data Exp
   | EFree Ident
   | ETupl [Exp]
   | EProj Exp Int
-  | ECase Exp [Exp]
+  | ECase Exp [(Ident, Exp)]
   | EInj Int Exp
   | ETLam Exp
   | ETApp Exp Typ
+  | ETAnn Exp Typ
   deriving (Show, Eq)
 
 -- | START: Typed syntax and proof types
-
 data Tuple (γ :: [Typ]) (τs :: [Typ]) where
-  Unit :: Tuple γ '[]
-  Cons :: Term γ τ -> Tuple γ τs -> Tuple γ (τ : τs)
+  TNil :: Tuple γ '[]
+  TCons :: Term γ τ -> Tuple γ τs -> Tuple γ (τ : τs)
 
 instance Show (Tuple γ τs) where
   show tup = "<" <> go tup <> ">"
     where
       go :: Tuple γ' τs' -> String
-      go Unit = ""
-      go (Cons t ts) = show t <> case ts of
-        Unit -> ""
-        _ -> ", " <> go ts
+      go TNil = ""
+      go (TCons t ts) =
+        show t <> case ts of
+          TNil -> ""
+          _ -> ", " <> go ts
+
+data Cases (γ :: [Typ]) (τs :: [Typ]) (τ :: Typ) where
+  CNil :: Cases γ τs τ
+  CCons :: Term (τ' : γ) τ -> Cases γ τs τ -> Cases γ (τ' : τs) τ
+
+instance Show (Cases γ τs τ) where
+  show cases = "[" <> go 0 cases <> "]"
+    where
+      go :: Int -> Cases γ' τs' τ' -> String
+      go _ CNil = ""
+      go i (CCons c cs) =
+        show i
+          <> " ☞  "
+          <> show c
+          <> case cs of
+            CNil -> ""
+            _ -> ", " <> go (i + 1) cs
 
 -- | Well typed Term definitions
 data Term (γ :: [Typ]) (τ :: Typ) where
@@ -60,8 +78,10 @@ data Term (γ :: [Typ]) (τ :: Typ) where
   Lam :: STyp τ₁ -> Term (τ₁ : γ) τ₂ -> Term γ ('TArr τ₁ τ₂)
   App :: Term γ ('TArr τ₁ τ₂) -> Term γ τ₁ -> Term γ τ₂
   Var :: τ ∈ γ -> Term γ τ
-  Prod :: Tuple γ τs -> Term γ ('TProd τs)
+  Tup :: Tuple γ τs -> Term γ ('TProd τs)
   Proj :: τ ∈ τs -> Term γ ('TProd τs) -> Term γ τ
+  Inj :: τ ∈ τs -> Term γ τ -> STuple τs -> Term γ ('TSum τs)
+  Case :: Term γ ('TSum τs) -> Cases γ τs τ -> Term γ τ
 
 instance Show (Term γ τ) where
   show (Var x) = "(Var " <> show x <> ")"
@@ -69,8 +89,10 @@ instance Show (Term γ τ) where
   show (Succ e) = "(Succ " <> show e <> ")"
   show (Lam t body) = "λx : " <> show t <> " . " <> show body
   show (App f a) = "(" <> show f <> ")(" <> show a <> ")"
-  show (Prod tup) = show tup
+  show (Tup tup) = show tup
   show (Proj idx tup) = show tup <> "." <> show idx
+  show (Inj idx t _) = show idx <> "." <> show t
+  show (Case t c) = unwords ["case", show t, show c]
 
 -- | Membership proofs
 data (τ :: a) ∈ (γ :: [a]) where
@@ -88,49 +110,51 @@ depth (There x) = 1 + depth x
 absurdVar :: (τ ∈ '[]) -> a
 absurdVar = \case {}
 
-data STuple (τs :: [Typ]) where
-  SUnit :: STuple '[]
-  SCons :: STyp τ -> STuple τs -> STuple (τ : τs)
-
 -- | Singleton type
 data STyp (τ :: Typ) where
   SNat :: STyp 'TNat
   SArr :: STyp τ₁ -> STyp τ₂ -> STyp ('TArr τ₁ τ₂)
   SProd :: STuple τs -> STyp ('TProd τs)
-
--- TODO: Define the rest of the STyps
-
--- | Type for producing STyps without a polymorphic param.
--- Allows for runtime unpacking of types without compile-time checking
-data SomeSTyp where
-  SomeSTyp :: STyp τ -> SomeSTyp
-
-data SomeSTuple where
-  SomeSTuple :: STuple τs -> SomeSTuple
-
--- | Wrap a Typ in SomeSTyp
-toSTyp :: Typ -> SomeSTyp
-toSTyp TNat = SomeSTyp SNat
-toSTyp (TArr a r) = case (toSTyp a, toSTyp r) of
-  (SomeSTyp sa, SomeSTyp sr) -> SomeSTyp $ SArr sa sr
-toSTyp (TProd []) = SomeSTyp $ SProd SUnit
-toSTyp (TProd tup) = case toSTuple tup of
-  SomeSTuple stup -> SomeSTyp $ SProd stup
-toSTyp _ = undefined
-
-toSTuple :: [Typ] -> SomeSTuple
-toSTuple [] = SomeSTuple SUnit
-toSTuple (t:ts) = case (toSTyp t, toSTuple ts) of
-  (SomeSTyp t', SomeSTuple ts') -> SomeSTuple $ SCons t' ts'
+  SSum :: STuple τs -> STyp ('TSum τs)
 
 instance Show (STyp τ) where
   show SNat = "ℕ"
-  show (SArr a b) = "(" ++ show a ++ " -> " ++ show b ++ ")"
-  show (SProd ts) = "<" <> go ts <> ">"
-    where
-      go :: STuple τs -> String
-      go _ = "TODO"
+  show (SArr a b) = "(" ++ show a ++ " → " ++ show b ++ ")"
+  show (SProd ts) = "<" <> show ts <> ">"
+  show (SSum ts) = "[" <> show ts <> "]"
 
+data STuple (τs :: [Typ]) where
+  SNil :: STuple '[]
+  SCons :: STyp τ -> STuple τs -> STuple (τ : τs)
+
+instance Show (STuple τs) where
+  show SNil = ""
+  show (SCons t ts) =
+    show t <> case ts of
+      SNil -> ""
+      _ -> ", " <> show ts
+
+-- | Type for producing STyps without a polymorphic param.
+-- Allows for runtime unpacking of types without compile-time checking
+data Some a where
+  Some :: a τ -> Some a
+
+-- | Wrap a Typ in Some STyp
+toSTyp :: Typ -> Some STyp
+toSTyp TNat = Some SNat
+toSTyp (TArr a r) = case (toSTyp a, toSTyp r) of
+  (Some sa, Some sr) -> Some $ SArr sa sr
+toSTyp (TProd []) = Some $ SProd SNil
+toSTyp (TProd tup) = case toSTuple tup of
+  Some stup -> Some $ SProd stup
+toSTyp (TSum []) = Some $ SSum SNil
+toSTyp (TSum tup) = case toSTuple tup of
+  Some stup -> Some $ SSum stup
+
+toSTuple :: [Typ] -> Some STuple
+toSTuple [] = Some SNil
+toSTuple (t : ts) = case (toSTyp t, toSTuple ts) of
+  (Some t', Some ts') -> Some $ SCons t' ts'
 
 -- | Check equality between two STyps
 typEq :: STyp τ₁ -> STyp τ₂ -> Maybe (τ₁ :~: τ₂)
@@ -140,17 +164,20 @@ typEq (SArr a b) (SArr c d) = do
   Refl <- typEq b d
   return Refl
 typEq (SProd a) (SProd b) = do
-  Refl <- go a b
+  Refl <- stupleEq a b
   return Refl
-  where
-    go :: STuple τs -> STuple τs' -> Maybe (τs :~: τs')
-    go (SCons x xs) (SCons y ys) = do
-      Refl <- typEq x y
-      Refl <- go xs ys
-      return Refl
-    go SUnit SUnit = return Refl
-    go _ _ = Nothing
+typEq (SSum a) (SSum b) = do
+  Refl <- stupleEq a b
+  return Refl
 typEq _ _ = Nothing
+
+stupleEq :: STuple τs -> STuple τs' -> Maybe (τs :~: τs')
+stupleEq (SCons x xs) (SCons y ys) = do
+  Refl <- typEq x y
+  Refl <- stupleEq xs ys
+  return Refl
+stupleEq SNil SNil = return Refl
+stupleEq _ _ = Nothing
 
 -- | START: Value types, produced by the evaluator
 data Val (τ :: Typ) where
