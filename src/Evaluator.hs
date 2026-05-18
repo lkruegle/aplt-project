@@ -60,3 +60,16 @@ step (ECase e es) = case e of
 step (EAnn e _) = step e -- EAnn is transparent during evaluation.
 step e =
   error $ "Given expression " <> show e <> " has no valid step-wise dynamics."
+
+showVal :: Val -> String
+showVal (Val e)  = case expToInt e of
+  Just n -> show n
+  Nothing -> show e
+
+expToInt :: Exp -> Maybe Int
+expToInt e = case e of
+  EZero -> Just 0
+  ESucc e' -> do
+    n <- expToInt e'
+    Just (1 + n)
+  _ -> Nothing
