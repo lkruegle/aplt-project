@@ -54,5 +54,6 @@ desugarExp s (A.ETupl es) = ETupl (map (desugarExp s) es)
 desugarExp s (A.EProj e i) = EProj (desugarExp s e) (fromIntegral i)
 desugarExp s (A.ECase e es) = ECase (desugarExp s e) (map go es)
   where
-    go (A.Match i e) = desugarExp (bindTerm i s) e
+    go (A.Match i e') = desugarExp (bindTerm i s) e'
 desugarExp s (A.EInj i e) = EInj (fromIntegral i) (desugarExp s e)
+desugarExp s (A.EAnn e t) = EAnn (desugarExp s e) (desugarTyp s t)

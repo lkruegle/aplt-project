@@ -51,6 +51,7 @@ step (EProj e i) = case e of
 step (ECase e es) = case e of
   EInj i e' -> substExp e' (es !! i)
   _ -> ECase (step e) es
+step (EAnn e _) = step e -- EAnn is transparent during evaluation.
 -- dynamics of sums and products
 
 step e =

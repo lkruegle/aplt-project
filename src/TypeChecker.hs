@@ -113,7 +113,8 @@ infer c (EProj e i) = do
       | i < length taus -> Right (taus !! i)
       | otherwise -> Left $ "Projection index " <> show i <> " is out of bound for: " <> show tau
     _ -> Left $ "Projection applied to non-product: " <> show tau
-infer c e = Left $ "Cannot infer type of " <> show e
+infer c (EAnn e t) = check c t e >> Right t
+infer _ e = Left $ "Cannot infer type of " <> show e
 
 -- | Check that the given type is well-formed.
 wellFormed :: Ctx -> Typ -> Either String ()
