@@ -18,7 +18,7 @@ toVal e@(ETLam _) = Just $ Val e
 -- 9.2a
 toVal e@EZero = Just $ Val e
 -- 9.2b
-toVal e@(ESucc _) = Just $ Val e
+toVal e@(ESucc e') = toVal e' *> Just (Val e)
 -- 10.4a --special case of rule that are technically eager
 toVal e@(ETupl (i:is)) = toVal (ETupl is) *> toVal i *> Just (Val e)
 toVal e@(ETupl []) = Just $ Val e
@@ -30,6 +30,8 @@ toVal _ = Nothing
 --
 -- Uses a Lazy evaluation strategy
 step :: Exp -> Exp
+-- 9.3a
+step (ESucc e) = ESucc $ step e
 -- 16.3c/e
 step (EFApp f@(EFLam _ body) arg) = case toVal arg of
   Just (Val _) -> substExp arg body -- 16.3c
