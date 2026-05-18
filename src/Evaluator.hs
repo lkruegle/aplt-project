@@ -48,8 +48,8 @@ step (ETupl tup) = ETupl $ map go tup
       Just _ -> e
 -- 10.4c and 10.4d
 step (EProj e i) = case toVal e of
-  Just (Val (ETupl es)) -> es !! i
-  _ -> EProj (step e) i
+  Just (Val (ETupl es)) -> es !! i -- 10.4d
+  _ -> EProj (step e) i -- 10.4c
 -- 11.4b
 step (EInj i e) = EInj i $ step e
 -- 11.4c/d
