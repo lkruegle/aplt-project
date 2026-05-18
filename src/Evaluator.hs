@@ -12,25 +12,17 @@ evaluate e = case toVal e of
 -- | Check if an expression is a Value.
 toVal :: Exp -> Maybe Val
 -- 16.3a
-toVal (EFLam t e) = Just $ VLam t e
+toVal e@(EFLam _ _) = Just $ Val e
 -- 16.3b
-toVal (ETLam e) = Just $ VTLam e
+toVal e@(ETLam _) = Just $ Val e
 -- 9.2a
-toVal e@EZero = Just $ VNat (toInt e)
+toVal e@EZero = Just $ Val e
 -- 9.2b
-toVal e@(ESucc _) = Just $ VNat (toInt e)
+toVal e@(ESucc _) = Just $ Val e
 -- 10.4a --special case of rule that are technically eager
-toVal (ETupl es) = Just $ VProd es
-toVal (EInj i e) = Just $ VSum i e
+toVal e@(ETupl _) = Just $ Val e
+toVal e@(EInj _ _) = Just $ Val e
 toVal _ = Nothing
-
-toInt :: Exp -> Int
-toInt EZero = 0
--- ESucc must evaluate e here to handle lazy dynamics
-toInt (ESucc e) = case evaluate e of
-  VNat n -> 1 + n
-  v -> error $ "Cannot convert value " <> show v <> " to Int."
-toInt e = error $ "Cannot convert " <> show e <> " to Int."
 
 -- | Implement the step-wise evaluation of an expression
 --
