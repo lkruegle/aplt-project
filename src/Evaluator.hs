@@ -20,7 +20,8 @@ toVal e@EZero = Just $ Val e
 -- 9.2b
 toVal e@(ESucc _) = Just $ Val e
 -- 10.4a --special case of rule that are technically eager
-toVal e@(ETupl _) = Just $ Val e
+toVal e@(ETupl (i:is)) = toVal (ETupl is) *> toVal i *> Just (Val e)
+toVal e@(ETupl []) = Just $ Val e
 toVal e@(EInj _ _) = Just $ Val e
 toVal _ = Nothing
 
@@ -28,8 +29,10 @@ toVal _ = Nothing
 --
 -- Uses a Lazy evaluation strategy
 step :: Exp -> Exp
--- 16.3c
-step (EFApp (EFLam _ body) arg) = substExp arg body
+-- 16.3c/e
+step (EFApp f@(EFLam _ body) arg) = case toVal arg of
+  Just (Val _) -> substExp arg body -- 16.3c
+  Nothing -> EFApp f (step arg) -- 16.3e
 -- 16.3d
 step (EFApp e arg) = EFApp (step e) arg
 -- 16.3f
@@ -37,13 +40,18 @@ step (ETApp (ETLam body) t) = substTypInExp t body
 -- 16.3g
 step (ETApp e t) = ETApp (step e) t
 -- 10.4c and 10.4d
-step (EProj e i) = case e of
-  ETupl es -> es !! i
+step (EProj e i) = case toVal e of
+  Just (Val (ETupl es)) -> es !! i
   _ -> EProj (step e) i
 step (ECase e es) = case e of
   EInj i e' -> substExp e' (es !! i)
   _ -> ECase (step e) es
 step (EAnn e _) = step e -- EAnn is transparent during evaluation.
 -- dynamics of sums and products
+step (ETupl tup) = ETupl $ map go tup
+  where
+    go e = case toVal e of
+      Nothing -> step e
+      Just _ -> e
 step e =
   error $ "Given expression " <> show e <> " has no valid step-wise dynamics."
