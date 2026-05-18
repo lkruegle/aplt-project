@@ -22,7 +22,8 @@ toVal e@(ESucc _) = Just $ Val e
 -- 10.4a --special case of rule that are technically eager
 toVal e@(ETupl (i:is)) = toVal (ETupl is) *> toVal i *> Just (Val e)
 toVal e@(ETupl []) = Just $ Val e
-toVal e@(EInj _ _) = Just $ Val e
+-- 11.4a
+toVal e@(EInj _ c) = toVal c *> Just (Val e)
 toVal _ = Nothing
 
 -- | Implement the step-wise evaluation of an expression
@@ -39,19 +40,23 @@ step (EFApp e arg) = EFApp (step e) arg
 step (ETApp (ETLam body) t) = substTypInExp t body
 -- 16.3g
 step (ETApp e t) = ETApp (step e) t
--- 10.4c and 10.4d
-step (EProj e i) = case toVal e of
-  Just (Val (ETupl es)) -> es !! i
-  _ -> EProj (step e) i
-step (ECase e es) = case e of
-  EInj i e' -> substExp e' (es !! i)
-  _ -> ECase (step e) es
-step (EAnn e _) = step e -- EAnn is transparent during evaluation.
--- dynamics of sums and products
+-- 10.4b
 step (ETupl tup) = ETupl $ map go tup
   where
     go e = case toVal e of
       Nothing -> step e
       Just _ -> e
+-- 10.4c and 10.4d
+step (EProj e i) = case toVal e of
+  Just (Val (ETupl es)) -> es !! i
+  _ -> EProj (step e) i
+-- 11.4b
+step (EInj i e) = EInj i $ step e
+-- 11.4c/d
+step (ECase e es) = case e of
+  EInj i e' -> substExp e' (es !! i) -- 11.4d
+  _ -> ECase (step e) es --11.4c
+-- dynamics of sums and products
+step (EAnn e _) = step e -- EAnn is transparent during evaluation.
 step e =
   error $ "Given expression " <> show e <> " has no valid step-wise dynamics."
