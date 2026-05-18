@@ -53,6 +53,5 @@ step (ECase e es) = case e of
   _ -> ECase (step e) es
 step (EAnn e _) = step e -- EAnn is transparent during evaluation.
 -- dynamics of sums and products
-
 step e =
   error $ "Given expression " <> show e <> " has no valid step-wise dynamics."
