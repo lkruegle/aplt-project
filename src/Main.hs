@@ -51,4 +51,4 @@ runTypechecker e = case typecheck e of
     exitFailure
 
 runEvaluator :: Exp -> IO ()
-runEvaluator = print . evaluate
+runEvaluator = putStrLn . showVal . evaluate

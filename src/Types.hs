@@ -32,10 +32,5 @@ data Exp
   | EAnn Exp Typ
   deriving (Show, Eq)
 
-data Val
-  = VNat Int
-  | VProd [Exp]
-  | VSum Int Exp
-  | VLam Typ Exp
-  | VTLam Exp
+newtype Val = Val Exp
   deriving (Show, Eq)
