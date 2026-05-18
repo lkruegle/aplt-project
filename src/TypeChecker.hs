@@ -2,6 +2,7 @@ module TypeChecker (typecheck) where
 
 import BookKeeping hiding (bindTyp)
 import Types
+import Prelude hiding (exp)
 
 -- | Entrypoint for the typechecker
 --
@@ -40,28 +41,37 @@ guard s b = if b then pure () else Left s
 check :: Ctx -> Typ -> Exp -> Either String ()
 check c ty (EInj i e) = case ty of
   TSum taus
-    | i < 0 -> Left $ "Injection index must be greater then zero"
+    | i < 0 -> Left "Injection index must be greater then zero"
     | i < length taus -> check c (taus !! i) e
     | otherwise -> Left $ "Injection index " <> show i <> " is out of bound for: " <> show ty
   _ -> Left "Inferred type does not meet expected type."
 check c ty (ECase e es) = do
   ty' <- infer c e
   case ty' of
-    TSum tys
-      | length tys == length es ->
-          let go [] [] = pure ()
-              go (e : es) (ty' : tys) = do
-                check (bindTerm ty' c) ty e
-                go es tys
-           in go es tys
-      | otherwise -> Left "Number of cases does not match sum type"
+    TSum tys -> go es tys
     _ -> Left "Case distinction on non sum-type."
+  where
+    go [] [] = pure ()
+    go (e' : es') (t' : ts') = do
+      check (bindTerm t' c) ty e'
+      go es' ts'
+    go _ _ = Left "Number of cases does not match sum type"
 check c (TArr t1 t2) (EFLam t1' e) = do
   guard "Function takes wrong argument" (t1' == t1)
   check (bindTerm t1 c) t2 e
 check c ty exp = do
   ty' <- infer c exp
-  guard ("Inferred type '" <> show ty' <> "' of exp '" <> show exp <> "' does not meet expected type '" <> show ty <> "'.") (ty == ty')
+  guard
+    ( unwords
+        [ "Inferred type",
+          "'" <> show ty' <> "'",
+          "of exp",
+          "'" <> show exp <> "'",
+          "does not meet expected type",
+          "'" <> show ty <> "'."
+        ]
+    )
+    (ty == ty')
 
 -- | Infer the type of the given expression in the given context.
 --
@@ -113,7 +123,8 @@ infer c (EProj e i) = do
       | i < length taus -> Right (taus !! i)
       | otherwise -> Left $ "Projection index " <> show i <> " is out of bound for: " <> show tau
     _ -> Left $ "Projection applied to non-product: " <> show tau
-infer c e = Left $ "Cannot infer type of " <> show e
+infer c (EAnn e t) = check c t e >> Right t
+infer _ e = Left $ "Cannot infer type of " <> show e
 
 -- | Check that the given type is well-formed.
 wellFormed :: Ctx -> Typ -> Either String ()

@@ -29,6 +29,7 @@ data Exp
   | EFApp Exp Exp
   | ETLam Exp
   | ETApp Exp Typ
+  | EAnn Exp Typ
   deriving (Show, Eq)
 
 data Val
